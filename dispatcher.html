@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>调度员端 · 线路、车辆与司机指派管理</title>
+  <title>调度员端 · 线路、车辆（1–9号车）与司机指派管理</title>
   <style>
     :root {
       --bg: #f3f5f8;
@@ -114,6 +114,25 @@
       align-items: center;
       font-weight: 700;
       font-size: 14.5px;
+    }
+    .route-status-badge {
+      display: inline-block;
+      margin-top: 5px;
+      margin-right: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .route-status-badge.assigned {
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+    }
+    .route-status-badge.unassigned {
+      background: #f3f4f6;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
     }
     .tag {
       display: inline-block;
@@ -284,7 +303,7 @@
       <section class="panel">
         <h2 class="panel-title">
           <span>会员卡片池</span>
-          <span style="font-size:12px;color:var(--muted);font-weight:400;">可拖拽到右侧线路</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:400;">显示当前线路归属，可拖拽排班</span>
         </h2>
         <div id="memberPoolList"></div>
       </section>
@@ -439,6 +458,16 @@
       await persist(`已更新 ${driver.name} 的登录码为 ${nextCode}`);
     }
 
+    function getAssignedRouteNames(memberId) {
+      const names = [];
+      (state.routes || []).forEach(r => {
+        if ((r.stops || []).some(s => s.memberId === memberId)) {
+          names.push(r.lineName);
+        }
+      });
+      return names;
+    }
+
     function renderDriverCodes() {
       const container = document.getElementById('driverCodesList');
       container.innerHTML = state.drivers.map(d => `
@@ -454,25 +483,35 @@
       const container = document.getElementById('memberPoolList');
       const routeOptions = state.routes.map(r => `<option value="${r.id}">${r.lineName}</option>`).join('');
 
-      container.innerHTML = state.members.map(m => `
-        <div class="member-card" draggable="true" ondragstart="draggedMemberId='${m.id}'">
-          <div class="member-head">
-            <span>${m.name}</span>
-            <span style="font-size:12px;color:var(--muted);font-weight:400;">${m.phone || ''}</span>
+      container.innerHTML = state.members.map(m => {
+        const assignedLines = getAssignedRouteNames(m.id);
+        const routeBadgeHtml = assignedLines.length > 0
+          ? `<span class="route-status-badge assigned">已排：${assignedLines.join('、')}</span>`
+          : `<span class="route-status-badge unassigned">未排线路</span>`;
+
+        return `
+          <div class="member-card" draggable="true" ondragstart="draggedMemberId='${m.id}'">
+            <div class="member-head">
+              <span>${m.name}</span>
+              <span style="font-size:12px;color:var(--muted);font-weight:400;">${m.phone || ''}</span>
+            </div>
+            <div>
+              ${routeBadgeHtml}
+              ${m.specialNeeds ? `<span class="tag">特殊需要：${m.specialNeeds}</span>` : ''}
+            </div>
+            <div class="member-detail">${m.address || ''}</div>
+            ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${m.notes}</div>` : ''}
+            <div class="member-actions">
+              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){addMemberToRoute('${m.id}', this.value); this.value='';}">
+                <option value="">+ 加入线路...</option>
+                ${routeOptions}
+              </select>
+              <button class="btn" style="padding:5px 8px;font-size:12px;" onclick="editMember('${m.id}')">编辑</button>
+              <button class="btn btn-danger" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${m.id}')">删除</button>
+            </div>
           </div>
-          <div class="member-detail">${m.address || ''}</div>
-          ${m.specialNeeds ? `<span class="tag">特殊需要：${m.specialNeeds}</span>` : ''}
-          ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${m.notes}</div>` : ''}
-          <div class="member-actions">
-            <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){addMemberToRoute('${m.id}', this.value); this.value='';}">
-              <option value="">+ 加入线路...</option>
-              ${routeOptions}
-            </select>
-            <button class="btn" style="padding:5px 8px;font-size:12px;" onclick="editMember('${m.id}')">编辑</button>
-            <button class="btn btn-danger" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${m.id}')">删除</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function renderRoutes() {
