@@ -8,7 +8,7 @@ window.FleetSync = (function () {
   const CHANNEL_NAME = 'fleet_dispatch_sync_channel_v2';
 
   // 如需跨手机/跨电脑云端同步，请设为 true 并填入你的 Firebase 项目配置
-  const ENABLE_FIREBASE = false;
+  const ENABLE_FIREBASE = true;
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyDmu4gvfwamueoENzCKBITSOiU25gp_X4g',
     authDomain: 'fleet-dispatch-tx.firebaseapp.com',
