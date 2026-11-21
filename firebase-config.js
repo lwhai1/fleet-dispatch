@@ -1,16 +1,15 @@
 /**
  * 共享存储与同步引擎
- * 支持 localStorage + BroadcastChannel（同浏览器多标签即时同步）
- * 可选启用 Firebase Realtime Database 实现跨设备云端同步
+ * 已启用 Firebase Realtime Database 跨设备云端同步（自动加载 Firebase SDK）
  */
 window.FleetSync = (function () {
   const STORAGE_KEY = 'fleet_dispatch_system_v2';
   const CHANNEL_NAME = 'fleet_dispatch_sync_channel_v2';
 
-  // 如需跨手机/跨电脑云端同步，请设为 true 并填入你的 Firebase 项目配置
   const ENABLE_FIREBASE = true;
+
   const FIREBASE_CONFIG = {
-    apiKey: 'AIzaSyDmu4gvfwamueoENzCKBITSOiU25gp_X4g',
+    apiKey: 'AIzaSyDmu4gvfwamueoENzCKBITS0iU25gp_X4g',
     authDomain: 'fleet-dispatch-tx.firebaseapp.com',
     databaseURL: 'https://fleet-dispatch-tx-default-rtdb.firebaseio.com',
     projectId: 'fleet-dispatch-tx',
@@ -133,18 +132,59 @@ window.FleetSync = (function () {
   };
 
   let dbRef = null;
+  let sdkPromise = null;
   const channel = ('BroadcastChannel' in window) ? new BroadcastChannel(CHANNEL_NAME) : null;
 
   function clone(obj) {
     return JSON.parse(JSON.stringify(obj));
   }
 
-  function initFirebaseIfNeeded() {
-    if (!ENABLE_FIREBASE || dbRef || !window.firebase) return;
-    if (!firebase.apps.length) {
-      firebase.initializeApp(FIREBASE_CONFIG);
+  function hasValidFirebaseConfig() {
+    return ENABLE_FIREBASE &&
+      FIREBASE_CONFIG &&
+      FIREBASE_CONFIG.apiKey &&
+      !FIREBASE_CONFIG.apiKey.startsWith('YOUR_') &&
+      FIREBASE_CONFIG.databaseURL &&
+      !FIREBASE_CONFIG.databaseURL.includes('YOUR_PROJECT');
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = false;
+      script.onload = () => resolve();
+      script.onerror = (err) => reject(err);
+      document.head.appendChild(script);
+    });
+  }
+
+  async function ensureFirebaseDb() {
+    if (!hasValidFirebaseConfig()) return null;
+    if (dbRef) return dbRef;
+
+    if (!sdkPromise) {
+      sdkPromise = (async () => {
+        if (!window.firebase) {
+          await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+          await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
+        }
+        if (!window.firebase.apps.length) {
+          window.firebase.initializeApp(FIREBASE_CONFIG);
+        }
+        dbRef = window.firebase.database().ref('fleetDispatchStateV2');
+        return dbRef;
+      })().catch((err) => {
+        console.warn('Firebase SDK 加载失败:', err);
+        sdkPromise = null;
+        return null;
+      });
     }
-    dbRef = firebase.database().ref('fleetDispatchStateV2');
+    return sdkPromise;
   }
 
   function readLocal() {
@@ -170,17 +210,17 @@ window.FleetSync = (function () {
   }
 
   async function loadState() {
-    initFirebaseIfNeeded();
-    if (ENABLE_FIREBASE && dbRef) {
+    const ref = await ensureFirebaseDb();
+    if (ref) {
       try {
-        const snap = await dbRef.once('value');
+        const snap = await ref.once('value');
         const val = snap.val();
         if (val && Array.isArray(val.routes) && Array.isArray(val.drivers)) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
           return val;
         }
         const initial = readLocal();
-        await dbRef.set(initial);
+        await ref.set(initial);
         return initial;
       } catch (err) {
         console.warn('Firebase 读取失败，回退本地存储:', err);
@@ -193,10 +233,10 @@ window.FleetSync = (function () {
   async function saveState(nextState) {
     const normalized = clone(nextState);
     writeLocal(normalized);
-    initFirebaseIfNeeded();
-    if (ENABLE_FIREBASE && dbRef) {
+    const ref = await ensureFirebaseDb();
+    if (ref) {
       try {
-        await dbRef.set(normalized);
+        await ref.set(normalized);
       } catch (err) {
         console.warn('Firebase 写入失败，已保存在本地:', err);
       }
@@ -220,20 +260,20 @@ window.FleetSync = (function () {
       }
     });
 
-    initFirebaseIfNeeded();
-    if (ENABLE_FIREBASE && dbRef) {
-      dbRef.on('value', (snap) => {
+    ensureFirebaseDb().then((ref) => {
+      if (!ref) return;
+      ref.on('value', (snap) => {
         const val = snap.val();
         if (val && Array.isArray(val.routes) && Array.isArray(val.drivers)) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
           callback(val);
         }
       });
-    }
+    });
   }
 
   return {
-    ENABLE_FIREBASE,
+    ENABLE_FIREBASE: hasValidFirebaseConfig(),
     DEFAULT_STATE,
     loadState,
     saveState,
