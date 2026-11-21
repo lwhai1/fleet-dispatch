@@ -197,8 +197,8 @@
       <div class="topbar-sub" id="driverSubInfo">请先输入登录代码</div>
     </div>
     <div id="topbarActions" style="display:none;gap:6px;">
-      <button class="btn" onclick="manualRefresh()">刷新更新</button>
-      <button class="btn" onclick="logoutDriver()">切换登录</button>
+      <button type="button" class="btn" id="refreshBtn">刷新更新</button>
+      <button type="button" class="btn" id="logoutBtn">切换登录</button>
     </div>
   </header>
 
@@ -209,7 +209,7 @@
         输入调度员分配给您的登录代码（例如 <code>CHEN01</code>）查看当前指派线路、发车时间与站点。
       </p>
       <input class="input" id="driverCodeInput" placeholder="请输入登录代码，例如 CHEN01" autocomplete="off" />
-      <button class="btn btn-primary" onclick="loginByCode()">登录并查看任务</button>
+      <button type="button" class="btn btn-primary" id="loginBtn">登录并查看任务</button>
       <div id="loginError" style="color:#b91c1c;font-size:13px;margin-top:8px;"></div>
     </section>
 
@@ -220,142 +220,249 @@
 
   <script src="./firebase-config.js"></script>
   <script>
-    const SESSION_KEY = 'fleet_driver_session_code_v1';
-    let state = null;
-    let currentDriver = null;
+    (function () {
+      const SESSION_KEY = 'fleet_driver_session_code_v1';
+      let state = null;
+      let currentDriver = null;
+      let toastTimer = null;
 
-    function showToast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
-      clearTimeout(window.__drvToast);
-      window.__drvToast = setTimeout(() => el.classList.remove('show'), 2000);
-    }
-
-    function formatShortTime(iso) {
-      if (!iso) return '';
-      return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
-    }
-
-    function getTodayDateStr() {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    function formatScheduleDisplay(route) {
-      const dateStr = (route && route.dispatchDate) || getTodayDateStr();
-      const timeStr = (route && route.departureTime) || '08:00';
-      return `${dateStr} · 发车时间 ${timeStr}`;
-    }
-
-    function buildTelHref(phone) {
-      const cleaned = (phone || '').replace(/[^\d+]/g, '');
-      return cleaned ? `tel:${cleaned}` : '';
-    }
-
-    function buildNavHref(address) {
-      const q = (address || '').trim();
-      if (!q) return '';
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
-    }
-
-    function findDriverByCode(code) {
-      const normalized = (code || '').trim().toUpperCase();
-      if (!normalized || !state || !Array.isArray(state.drivers)) return null;
-      return state.drivers.find(d => (d.code || '').trim().toUpperCase() === normalized) || null;
-    }
-
-    async function loginByCode() {
-      const input = document.getElementById('driverCodeInput');
-      const errEl = document.getElementById('loginError');
-      const matched = findDriverByCode(input.value);
-      if (!matched) {
-        errEl.textContent = '未找到该登录代码，请核对后重试或联系调度员。';
-        return;
-      }
-      errEl.textContent = '';
-      currentDriver = matched;
-      sessionStorage.setItem(SESSION_KEY, matched.code);
-      renderWorkspace();
-      showToast(`欢迎，${matched.name}`);
-    }
-
-    function logoutDriver() {
-      currentDriver = null;
-      sessionStorage.removeItem(SESSION_KEY);
-      document.getElementById('topbarActions').style.display = 'none';
-      document.getElementById('taskWorkspace').style.display = 'none';
-      document.getElementById('loginCard').style.display = 'block';
-      document.getElementById('driverSubInfo').textContent = '请先输入登录代码';
-      document.getElementById('driverCodeInput').value = '';
-    }
-
-    async function manualRefresh() {
-      state = await window.FleetSync.loadState();
-      if (currentDriver) {
-        currentDriver = state.drivers.find(d => d.id === currentDriver.id) || null;
-      }
-      renderWorkspace();
-      showToast('已刷新线路与发车时间');
-    }
-
-    async function toggleStopFlag(routeId, stopIndex, field) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route || !route.stops || !route.stops[stopIndex]) return;
-      const stop = route.stops[stopIndex];
-      stop[field] = !stop[field];
-      stop.updatedAt = new Date().toISOString();
-      state = await window.FleetSync.saveState(state);
-      renderWorkspace();
-      if (field === 'pickedUp') {
-        showToast(stop.pickedUp ? '已确认接送' : '已取消接送确认');
-      } else {
-        showToast(stop.mealDelivered ? '已确认餐食送达' : '已取消送餐确认');
-      }
-    }
-
-    function renderWorkspace() {
-      if (!currentDriver) return;
-      document.getElementById('loginCard').style.display = 'none';
-      document.getElementById('topbarActions').style.display = 'flex';
-      document.getElementById('driverSubInfo').textContent =
-        `${currentDriver.name}（${currentDriver.code}）· ${window.FleetSync.ENABLE_FIREBASE ? '云端同步已开启' : '本地同步模式'}`;
-
-      const workspace = document.getElementById('taskWorkspace');
-      workspace.style.display = 'block';
-
-      const assignedRoutes = (state.routes || []).filter(r => r.assignedDriverId === currentDriver.id);
-      if (assignedRoutes.length === 0) {
-        workspace.innerHTML = `
-          <div class="card" style="text-align:center;padding:28px 16px;">
-            <div style="font-size:16px;font-weight:700;margin-bottom:6px;">当前暂未指派线路</div>
-            <div style="font-size:13px;color:var(--muted);">调度员指派线路与发车时间后，可点击右上角「刷新更新」查看。</div>
-          </div>
-        `;
-        return;
+      function showToast(msg) {
+        const el = document.getElementById('toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
       }
 
-      const memberMap = new Map((state.members || []).map(m => [m.id, m]));
+      function formatShortTime(iso) {
+        if (!iso) return '';
+        return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
+      }
 
-      workspace.innerHTML = assignedRoutes.map(route => {
-        const stops = route.stops || [];
-        const stopsHtml = stops.length === 0
-          ? `<div class="card" style="text-align:center;color:var(--muted);">当前线路暂无接送或送餐站点</div>`
-          : stops.map((stop, idx) => {
-              const m = memberMap.get(stop.memberId);
-              if (!m) return '';
-              const telHref = buildTelHref(m.phone);
-              const navHref = buildNavHref(m.address);
+      function getTodayDateStr() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+      }
 
-              return `
-                <div class="stop-card">
-                  <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span class="stop-title">#${idx + 1} ${m.name}</span>
-                    <span style="font-size:12px;color:var(--muted);">${stop.updatedAt ? '更新 ' + formatShortTime(stop.updatedAt) : ''}</span>
-                  </div>
-                  <div class="stop-meta"><strong>地址：</strong>${m.address || '-'}</div>
-                  <div class="stop-meta"><strong>电话：</strong>${m.phone || '-'}</div>
-                  ${m.specialNeeds ? `<div class
+      function formatScheduleDisplay(route) {
+        const dateStr = (route && route.dispatchDate) || getTodayDateStr();
+        const timeStr = (route && route.departureTime) || '08:00';
+        return dateStr + ' · 发车时间 ' + timeStr;
+      }
+
+      function buildTelHref(phone) {
+        const cleaned = (phone || '').replace(/[^\d+]/g, '');
+        return cleaned ? 'tel:' + cleaned : '';
+      }
+
+      function buildNavHref(address) {
+        const q = (address || '').trim();
+        if (!q) return '';
+        return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(q);
+      }
+
+      function findDriverByCode(code) {
+        const normalized = (code || '').trim().toUpperCase();
+        if (!normalized) return null;
+        const driverList = (state && Array.isArray(state.drivers) && state.drivers.length)
+          ? state.drivers
+          : ((window.FleetSync && window.FleetSync.DEFAULT_STATE && window.FleetSync.DEFAULT_STATE.drivers) || []);
+        return driverList.find(d => (d.code || '').trim().toUpperCase() === normalized) || null;
+      }
+
+      async function loginByCode() {
+        const input = document.getElementById('driverCodeInput');
+        const errEl = document.getElementById('loginError');
+        if (!input || !errEl) return;
+
+        if (!state && window.FleetSync && typeof window.FleetSync.loadState === 'function') {
+          try {
+            state = await window.FleetSync.loadState();
+          } catch (_) {}
+        }
+
+        const matched = findDriverByCode(input.value);
+        if (!matched) {
+          errEl.textContent = '未找到该登录代码，请核对后重试或联系调度员。';
+          return;
+        }
+        errEl.textContent = '';
+        currentDriver = matched;
+        try {
+          sessionStorage.setItem(SESSION_KEY, matched.code);
+        } catch (_) {}
+        renderWorkspace();
+        showToast('欢迎，' + matched.name);
+      }
+
+      function logoutDriver() {
+        currentDriver = null;
+        try {
+          sessionStorage.removeItem(SESSION_KEY);
+        } catch (_) {}
+        document.getElementById('topbarActions').style.display = 'none';
+        document.getElementById('taskWorkspace').style.display = 'none';
+        document.getElementById('loginCard').style.display = 'block';
+        document.getElementById('driverSubInfo').textContent = '请先输入登录代码';
+        document.getElementById('driverCodeInput').value = '';
+      }
+
+      async function manualRefresh() {
+        if (window.FleetSync && typeof window.FleetSync.loadState === 'function') {
+          state = await window.FleetSync.loadState();
+        }
+        if (currentDriver && state && Array.isArray(state.drivers)) {
+          currentDriver = state.drivers.find(d => d.id === currentDriver.id) || currentDriver;
+        }
+        renderWorkspace();
+        showToast('已刷新线路与发车时间');
+      }
+
+      async function toggleStopFlag(routeId, stopIndex, field) {
+        if (!state || !Array.isArray(state.routes)) return;
+        const route = state.routes.find(r => r.id === routeId);
+        if (!route || !route.stops || !route.stops[stopIndex]) return;
+        const stop = route.stops[stopIndex];
+        stop[field] = !stop[field];
+        stop.updatedAt = new Date().toISOString();
+        if (window.FleetSync && typeof window.FleetSync.saveState === 'function') {
+          state = await window.FleetSync.saveState(state);
+        }
+        renderWorkspace();
+        if (field === 'pickedUp') {
+          showToast(stop.pickedUp ? '已确认接送' : '已取消接送确认');
+        } else {
+          showToast(stop.mealDelivered ? '已确认餐食送达' : '已取消送餐确认');
+        }
+      }
+
+      function renderWorkspace() {
+        if (!currentDriver) return;
+        document.getElementById('loginCard').style.display = 'none';
+        document.getElementById('topbarActions').style.display = 'flex';
+        const cloudEnabled = Boolean(window.FleetSync && window.FleetSync.ENABLE_FIREBASE);
+        document.getElementById('driverSubInfo').textContent =
+          currentDriver.name + '（' + currentDriver.code + '）· ' + (cloudEnabled ? '云端同步已开启' : '本地同步模式');
+
+        const workspace = document.getElementById('taskWorkspace');
+        workspace.style.display = 'block';
+
+        const routesList = (state && Array.isArray(state.routes)) ? state.routes : [];
+        const assignedRoutes = routesList.filter(r => r.assignedDriverId === currentDriver.id);
+        if (assignedRoutes.length === 0) {
+          workspace.innerHTML =
+            '<div class="card" style="text-align:center;padding:28px 16px;">' +
+              '<div style="font-size:16px;font-weight:700;margin-bottom:6px;">当前暂未指派线路</div>' +
+              '<div style="font-size:13px;color:var(--muted);">调度员指派线路与发车时间后，可点击右上角「刷新更新」查看。</div>' +
+            '</div>';
+          return;
+        }
+
+        const memberList = (state && Array.isArray(state.members)) ? state.members : [];
+        const memberMap = new Map(memberList.map(m => [m.id, m]));
+
+        workspace.innerHTML = assignedRoutes.map(route => {
+          const stops = route.stops || [];
+          const stopsHtml = stops.length === 0
+            ? '<div class="card" style="text-align:center;color:var(--muted);">当前线路暂无接送或送餐站点</div>'
+            : stops.map((stop, idx) => {
+                const m = memberMap.get(stop.memberId);
+                if (!m) return '';
+                const telHref = buildTelHref(m.phone);
+                const navHref = buildNavHref(m.address);
+
+                return (
+                  '<div class="stop-card">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                      '<span class="stop-title">#' + (idx + 1) + ' ' + (m.name || '') + '</span>' +
+                      '<span style="font-size:12px;color:var(--muted);">' + (stop.updatedAt ? '更新 ' + formatShortTime(stop.updatedAt) : '') + '</span>' +
+                    '</div>' +
+                    '<div class="stop-meta"><strong>地址：</strong>' + (m.address || '-') + '</div>' +
+                    '<div class="stop-meta"><strong>电话：</strong>' + (m.phone || '-') + '</div>' +
+                    (m.specialNeeds ? '<div class="tag">特殊需要：' + m.specialNeeds + '</div>' : '') +
+                    (m.notes ? '<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>' + m.notes + '</div>' : '') +
+                    '<div class="four-btn-grid">' +
+                      '<a class="quick-btn call-btn ' + (telHref ? '' : 'disabled') + '" href="' + (telHref || '#') + '">📞 一键呼叫</a>' +
+                      '<a class="quick-btn ' + (navHref ? '' : 'disabled') + '" href="' + (navHref || '#') + '" target="_blank" rel="noopener noreferrer">🧭 一键导航</a>' +
+                      '<button type="button" class="action-btn ' + (stop.pickedUp ? 'done' : '') + '" data-action="toggle" data-route-id="' + route.id + '" data-stop-index="' + idx + '" data-field="pickedUp">' +
+                        (stop.pickedUp ? '✓ 已接送' : '确认已接送') +
+                      '</button>' +
+                      '<button type="button" class="action-btn ' + (stop.mealDelivered ? 'done' : '') + '" data-action="toggle" data-route-id="' + route.id + '" data-stop-index="' + idx + '" data-field="mealDelivered">' +
+                        (stop.mealDelivered ? '✓ 餐食已送达' : '餐食已送达') +
+                      '</button>' +
+                    '</div>' +
+                  '</div>'
+                );
+              }).join('');
+
+          return (
+            '<div class="route-banner">' +
+              '<div class="route-banner-main">' + route.lineName + ' · ' + (route.vehicleNo || '未指定车辆') + '</div>' +
+              '<div class="route-banner-sub">执勤司机：' + currentDriver.name + ' · 共 ' + stops.length + ' 个站点</div>' +
+              '<div class="schedule-highlight">📅 日期与发车时间：' + formatScheduleDisplay(route) + '</div>' +
+            '</div>' +
+            stopsHtml
+          );
+        }).join('');
+      }
+
+      document.getElementById('loginBtn').addEventListener('click', loginByCode);
+      document.getElementById('driverCodeInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          loginByCode();
+        }
+      });
+      document.getElementById('refreshBtn').addEventListener('click', manualRefresh);
+      document.getElementById('logoutBtn').addEventListener('click', logoutDriver);
+      document.getElementById('taskWorkspace').addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-action="toggle"]');
+        if (!btn) return;
+        toggleStopFlag(
+          btn.getAttribute('data-route-id'),
+          Number(btn.getAttribute('data-stop-index')),
+          btn.getAttribute('data-field')
+        );
+      });
+
+      (async function init() {
+        state = (window.FleetSync && window.FleetSync.DEFAULT_STATE)
+          ? JSON.parse(JSON.stringify(window.FleetSync.DEFAULT_STATE))
+          : { drivers: [], members: [], routes: [] };
+
+        try {
+          if (window.FleetSync && typeof window.FleetSync.loadState === 'function') {
+            state = await window.FleetSync.loadState();
+          }
+        } catch (_) {}
+
+        try {
+          const savedCode = sessionStorage.getItem(SESSION_KEY);
+          if (savedCode) {
+            const matched = findDriverByCode(savedCode);
+            if (matched) {
+              currentDriver = matched;
+              renderWorkspace();
+            }
+          }
+        } catch (_) {}
+
+        if (window.FleetSync && typeof window.FleetSync.onRemoteChange === 'function') {
+          window.FleetSync.onRemoteChange((latest) => {
+            state = latest;
+            if (currentDriver && state && Array.isArray(state.drivers)) {
+              currentDriver = state.drivers.find(d => d.id === currentDriver.id) || currentDriver;
+              renderWorkspace();
+              showToast('线路或发车时间已同步更新');
+            }
+          });
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>
