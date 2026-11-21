@@ -129,6 +129,11 @@
       color: var(--primary);
       border: 1px solid #bfdbfe;
     }
+    .route-status-badge.self-transport {
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid #a7f3d0;
+    }
     .route-status-badge.unassigned {
       background: #f3f4f6;
       color: #6b7280;
@@ -325,6 +330,7 @@
   <script src="./firebase-config.js"></script>
   <script>
     const VEHICLES = ['1号车', '2号车', '3号车', '4号车', '5号车', '6号车', '7号车', '8号车', '9号车'];
+    const NO_PICKUP_VALUE = '__NO_PICKUP__';
     let state = null;
     let draggedMemberId = null;
 
@@ -372,13 +378,15 @@
     async function saveMember(e) {
       e.preventDefault();
       const editId = document.getElementById('editingMemberId').value;
+      const existing = editId ? state.members.find(m => m.id === editId) : null;
       const payload = {
         id: editId || ('m-' + Date.now()),
         name: document.getElementById('mName').value.trim(),
         phone: document.getElementById('mPhone').value.trim(),
         address: document.getElementById('mAddress').value.trim(),
         specialNeeds: document.getElementById('mSpecial').value.trim(),
-        notes: document.getElementById('mNotes').value.trim()
+        notes: document.getElementById('mNotes').value.trim(),
+        noPickup: existing ? Boolean(existing.noPickup) : false
       };
       if (editId) {
         const idx = state.members.findIndex(m => m.id === editId);
@@ -398,9 +406,34 @@
       await persist('已删除会员卡片');
     }
 
+    async function setMemberNoPickup(memberId, enabled) {
+      const member = state.members.find(m => m.id === memberId);
+      if (!member) return;
+      member.noPickup = enabled;
+      if (enabled) {
+        state.routes.forEach(r => {
+          r.stops = (r.stops || []).filter(s => s.memberId !== memberId);
+        });
+      }
+      await persist(enabled ? `已标记 ${member.name} 为无需接送（自驾或亲友接送）` : `已取消 ${member.name} 的无需接送标记`);
+    }
+
+    async function handleMemberRouteSelect(memberId, selectedValue) {
+      if (!selectedValue) return;
+      if (selectedValue === NO_PICKUP_VALUE) {
+        await setMemberNoPickup(memberId, true);
+        return;
+      }
+      await addMemberToRoute(memberId, selectedValue);
+    }
+
     async function addMemberToRoute(memberId, routeId) {
       const route = state.routes.find(r => r.id === routeId);
       if (!route) return;
+      const member = state.members.find(m => m.id === memberId);
+      if (member && member.noPickup) {
+        member.noPickup = false;
+      }
       route.stops = route.stops || [];
       route.stops.push({
         memberId,
@@ -485,9 +518,14 @@
 
       container.innerHTML = state.members.map(m => {
         const assignedLines = getAssignedRouteNames(m.id);
-        const routeBadgeHtml = assignedLines.length > 0
-          ? `<span class="route-status-badge assigned">已排：${assignedLines.join('、')}</span>`
-          : `<span class="route-status-badge unassigned">未排线路</span>`;
+        let routeBadgeHtml = '';
+        if (assignedLines.length > 0) {
+          routeBadgeHtml = `<span class="route-status-badge assigned">已排：${assignedLines.join('、')}</span>`;
+        } else if (m.noPickup) {
+          routeBadgeHtml = `<span class="route-status-badge self-transport">无需接送（自驾或亲友接送）</span>`;
+        } else {
+          routeBadgeHtml = `<span class="route-status-badge unassigned">未排线路</span>`;
+        }
 
         return `
           <div class="member-card" draggable="true" ondragstart="draggedMemberId='${m.id}'">
@@ -502,10 +540,12 @@
             <div class="member-detail">${m.address || ''}</div>
             ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${m.notes}</div>` : ''}
             <div class="member-actions">
-              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){addMemberToRoute('${m.id}', this.value); this.value='';}">
+              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){handleMemberRouteSelect('${m.id}', this.value); this.value='';}">
                 <option value="">+ 加入线路...</option>
                 ${routeOptions}
+                <option value="${NO_PICKUP_VALUE}">无需接送（自驾或亲友接送）</option>
               </select>
+              ${m.noPickup ? `<button class="btn" style="padding:5px 8px;font-size:12px;" onclick="setMemberNoPickup('${m.id}', false)">恢复待排</button>` : ''}
               <button class="btn" style="padding:5px 8px;font-size:12px;" onclick="editMember('${m.id}')">编辑</button>
               <button class="btn btn-danger" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${m.id}')">删除</button>
             </div>
