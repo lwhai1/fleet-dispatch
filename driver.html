@@ -68,6 +68,11 @@
       font-size: 13.5px;
       font-weight: 700;
       cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
     .btn-primary {
       width: 100%;
@@ -111,9 +116,38 @@
     }
     .stop-title { font-size: 17px; font-weight: 800; }
     .stop-meta { font-size: 13.5px; color: #374151; margin-top: 5px; line-height: 1.45; }
+    .quick-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .quick-btn {
+      padding: 9px 10px;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      border: 1px solid #bfdbfe;
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .quick-btn.call-btn {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: #15803d;
+    }
+    .quick-btn.disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
     .tag {
       display: inline-block;
-      margin-top: 6px;
+      margin-top: 8px;
       background: #fef2f2;
       color: #b91c1c;
       border: 1px solid #fecaca;
@@ -223,6 +257,17 @@
       return `${dateStr} · 发车时间 ${timeStr}`;
     }
 
+    function buildTelHref(phone) {
+      const cleaned = (phone || '').replace(/[^\d+]/g, '');
+      return cleaned ? `tel:${cleaned}` : '';
+    }
+
+    function buildNavHref(address) {
+      const q = (address || '').trim();
+      if (!q) return '';
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+    }
+
     function findDriverByCode(code) {
       const normalized = (code || '').trim().toUpperCase();
       if (!normalized || !state || !Array.isArray(state.drivers)) return null;
@@ -308,6 +353,9 @@
           : stops.map((stop, idx) => {
               const m = memberMap.get(stop.memberId);
               if (!m) return '';
+              const telHref = buildTelHref(m.phone);
+              const navHref = buildNavHref(m.address);
+
               return `
                 <div class="stop-card">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -315,7 +363,17 @@
                     <span style="font-size:12px;color:var(--muted);">${stop.updatedAt ? '更新 ' + formatShortTime(stop.updatedAt) : ''}</span>
                   </div>
                   <div class="stop-meta"><strong>地址：</strong>${m.address || '-'}</div>
-                  <div class="stop-meta"><strong>电话：</strong><a href="tel:${m.phone || ''}" style="color:var(--primary);text-decoration:none;font-weight:600;">${m.phone || '-'}</a></div>
+                  <div class="stop-meta"><strong>电话：</strong>${m.phone || '-'}</div>
+
+                  <div class="quick-links">
+                    <a class="quick-btn call-btn ${telHref ? '' : 'disabled'}" href="${telHref || '#'}">
+                      📞 一键呼叫
+                    </a>
+                    <a class="quick-btn ${navHref ? '' : 'disabled'}" href="${navHref || '#'}" target="_blank" rel="noopener noreferrer">
+                      🧭 一键导航
+                    </a>
+                  </div>
+
                   ${m.specialNeeds ? `<div class="tag">特殊需要：${m.specialNeeds}</div>` : ''}
                   ${m.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${m.notes}</div>` : ''}
 
