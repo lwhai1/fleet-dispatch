@@ -10,13 +10,13 @@ window.FleetSync = (function () {
   // 如需跨手机/跨电脑云端同步，请设为 true 并填入你的 Firebase 项目配置
   const ENABLE_FIREBASE = false;
   const FIREBASE_CONFIG = {
-    apiKey: 'YOUR_API_KEY',
-    authDomain: 'YOUR_PROJECT.firebaseapp.com',
-    databaseURL: 'https://YOUR_PROJECT-default-rtdb.firebaseio.com',
-    projectId: 'YOUR_PROJECT',
-    storageBucket: 'YOUR_PROJECT.appspot.com',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    appId: 'YOUR_APP_ID'
+    apiKey: 'AIzaSyDmu4gvfwamueoENzCKBITSOiU25gp_X4g',
+    authDomain: 'fleet-dispatch-tx.firebaseapp.com',
+    databaseURL: 'https://fleet-dispatch-tx-default-rtdb.firebaseio.com',
+    projectId: 'fleet-dispatch-tx',
+    storageBucket: 'fleet-dispatch-tx.firebasestorage.app',
+    messagingSenderId: '217502711239',
+    appId: '1:217502711239:web:813029b32a27856a57ede2'
   };
 
   const DEFAULT_STATE = {
