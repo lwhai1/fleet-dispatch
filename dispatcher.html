@@ -184,18 +184,25 @@
       font-weight: 700;
       font-size: 13.5px;
     }
+    .status-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
     .status-pill {
       font-size: 11.5px;
       padding: 2px 7px;
       border-radius: 999px;
       background: #e5e7eb;
       color: #374151;
-      margin-top: 5px;
       display: inline-block;
     }
     .status-pill.ok {
       background: var(--success-soft);
       color: var(--success);
+      font-weight: 600;
     }
     .driver-code-row {
       display: grid;
@@ -287,7 +294,7 @@
       <section class="panel">
         <h2 class="panel-title">
           <span>线路排班 · 临时指定车辆与指定司机</span>
-          <span style="font-size:12px;color:var(--muted);font-weight:400;">线路、车号（1–9号车）、司机可分别临时指派</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:400;">司机确认状态后此处自动同步更新</span>
         </h2>
         <div class="routes-grid" id="routesGrid"></div>
       </section>
@@ -308,6 +315,11 @@
       el.classList.add('show');
       clearTimeout(window.__dToast);
       window.__dToast = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    function formatShortTime(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
     }
 
     async function persist(msg) {
@@ -483,6 +495,7 @@
           : route.stops.map((stop, idx) => {
               const m = memberMap.get(stop.memberId);
               if (!m) return '';
+              const timeStr = stop.updatedAt ? ` · ${formatShortTime(stop.updatedAt)}` : '';
               return `
                 <div class="stop-item">
                   <div class="stop-item-top">
@@ -495,9 +508,10 @@
                   </div>
                   <div style="font-size:12px;color:#4b5563;margin-top:3px;">${m.address || ''}</div>
                   ${m.specialNeeds ? `<span class="tag">${m.specialNeeds}</span>` : ''}
-                  <div>
+                  <div class="status-row">
                     <span class="status-pill ${stop.pickedUp ? 'ok' : ''}">${stop.pickedUp ? '✓ 已接送' : '待接送'}</span>
                     <span class="status-pill ${stop.mealDelivered ? 'ok' : ''}">${stop.mealDelivered ? '✓ 餐食已送达' : '餐食待送达'}</span>
+                    ${timeStr ? `<span style="font-size:11px;color:var(--muted);">${timeStr}</span>` : ''}
                   </div>
                 </div>
               `;
@@ -546,6 +560,7 @@
       window.FleetSync.onRemoteChange((latest) => {
         state = latest;
         renderAll();
+        showToast('收到司机端状态更新');
       });
     })();
   </script>

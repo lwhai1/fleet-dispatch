@@ -353,7 +353,7 @@
 
       appState = await window.FleetSync.saveState(appState);
       render();
-      showToast(field === 'pickedUp' ? '已更新接送状态' : '已更新餐食送达状态');
+      showToast(field === 'pickedUp' ? '已同步接送状态至调度端' : '已同步餐食送达状态至调度端');
     }
 
     function render() {

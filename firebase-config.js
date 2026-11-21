@@ -219,6 +219,17 @@ window.FleetSync = (function () {
         } catch (_) {}
       }
     });
+
+    initFirebaseIfNeeded();
+    if (ENABLE_FIREBASE && dbRef) {
+      dbRef.on('value', (snap) => {
+        const val = snap.val();
+        if (val && Array.isArray(val.routes) && Array.isArray(val.drivers)) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+          callback(val);
+        }
+      });
+    }
   }
 
   return {
