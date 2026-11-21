@@ -116,23 +116,34 @@
     }
     .stop-title { font-size: 17px; font-weight: 800; }
     .stop-meta { font-size: 13.5px; color: #374151; margin-top: 5px; line-height: 1.45; }
-    .quick-links {
+    .tag {
+      display: inline-block;
+      margin-top: 6px;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .four-btn-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .quick-btn {
-      padding: 9px 10px;
-      border-radius: 9px;
-      font-size: 13.5px;
-      font-weight: 700;
+      padding: 12px 10px;
+      border-radius: 11px;
+      font-size: 14.5px;
+      font-weight: 800;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 5px;
-      border: 1px solid #bfdbfe;
+      border: 1.5px solid #bfdbfe;
       background: var(--primary-soft);
       color: var(--primary);
     }
@@ -144,23 +155,6 @@
     .quick-btn.disabled {
       opacity: 0.45;
       pointer-events: none;
-    }
-    .tag {
-      display: inline-block;
-      margin-top: 8px;
-      background: #fef2f2;
-      color: #b91c1c;
-      border: 1px solid #fecaca;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 6px;
-    }
-    .action-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
     }
     .action-btn {
       padding: 13px 10px;
@@ -364,62 +358,4 @@
                   </div>
                   <div class="stop-meta"><strong>地址：</strong>${m.address || '-'}</div>
                   <div class="stop-meta"><strong>电话：</strong>${m.phone || '-'}</div>
-
-                  <div class="quick-links">
-                    <a class="quick-btn call-btn ${telHref ? '' : 'disabled'}" href="${telHref || '#'}">
-                      📞 一键呼叫
-                    </a>
-                    <a class="quick-btn ${navHref ? '' : 'disabled'}" href="${navHref || '#'}" target="_blank" rel="noopener noreferrer">
-                      🧭 一键导航
-                    </a>
-                  </div>
-
-                  ${m.specialNeeds ? `<div class="tag">特殊需要：${m.specialNeeds}</div>` : ''}
-                  ${m.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${m.notes}</div>` : ''}
-
-                  <div class="action-grid">
-                    <button class="action-btn ${stop.pickedUp ? 'done' : ''}" onclick="toggleStopFlag('${route.id}', ${idx}, 'pickedUp')">
-                      ${stop.pickedUp ? '✓ 已接送' : '确认已接送'}
-                    </button>
-                    <button class="action-btn ${stop.mealDelivered ? 'done' : ''}" onclick="toggleStopFlag('${route.id}', ${idx}, 'mealDelivered')">
-                      ${stop.mealDelivered ? '✓ 餐食已送达' : '餐食已送达'}
-                    </button>
-                  </div>
-                </div>
-              `;
-            }).join('');
-
-        return `
-          <div class="route-banner">
-            <div class="route-banner-main">${route.lineName} · ${route.vehicleNo || '未指定车辆'}</div>
-            <div class="route-banner-sub">执勤司机：${currentDriver.name} · 共 ${stops.length} 个站点</div>
-            <div class="schedule-highlight">📅 日期与发车时间：${formatScheduleDisplay(route)}</div>
-          </div>
-          ${stopsHtml}
-        `;
-      }).join('');
-    }
-
-    (async function init() {
-      state = await window.FleetSync.loadState();
-      const savedCode = sessionStorage.getItem(SESSION_KEY);
-      if (savedCode) {
-        const matched = findDriverByCode(savedCode);
-        if (matched) {
-          currentDriver = matched;
-          renderWorkspace();
-        }
-      }
-
-      window.FleetSync.onRemoteChange((latest) => {
-        state = latest;
-        if (currentDriver) {
-          currentDriver = state.drivers.find(d => d.id === currentDriver.id) || currentDriver;
-          renderWorkspace();
-          showToast('线路或发车时间已同步更新');
-        }
-      });
-    })();
-  </script>
-</body>
-</html>
+                  ${m.specialNeeds ? `<div class
