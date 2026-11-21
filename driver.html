@@ -3,25 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="司机接送单" />
-  <title>司机端 · 每日接送与餐食单</title>
+  <title>司机端 · 接送与送餐确认</title>
   <style>
     :root {
-      --bg: #f4f6f9;
+      --bg: #f3f5f8;
       --card: #ffffff;
       --text: #111827;
       --muted: #6b7280;
       --primary: #1d4ed8;
       --primary-soft: #eff6ff;
+      --border: #e5e7eb;
       --success: #047857;
       --success-soft: #ecfdf5;
-      --amber: #b45309;
-      --amber-soft: #fffbeb;
-      --border: #e5e7eb;
     }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -33,133 +28,90 @@
       position: sticky;
       top: 0;
       z-index: 20;
-      background: #ffffff;
+      background: #fff;
       border-bottom: 1px solid var(--border);
       padding: 12px 16px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 8px;
     }
-    .topbar-title { font-size: 17px; font-weight: 700; margin: 0; }
+    .topbar-title { font-size: 17px; font-weight: 800; }
     .topbar-sub { font-size: 12px; color: var(--muted); }
+    .container {
+      max-width: 640px;
+      margin: 14px auto;
+      padding: 0 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .input {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 16px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
     .btn {
       border: 1px solid var(--border);
       background: #fff;
       color: var(--text);
       border-radius: 10px;
       padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 13.5px;
+      font-weight: 700;
       cursor: pointer;
     }
     .btn-primary {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
       background: var(--primary);
       border-color: var(--primary);
       color: #fff;
     }
-    .btn-soft-success {
-      background: var(--success-soft);
-      border-color: #a7f3d0;
-      color: var(--success);
-    }
-    .btn-soft-amber {
-      background: var(--amber-soft);
-      border-color: #fde68a;
-      color: var(--amber);
-    }
-    .container {
-      max-width: 560px;
-      margin: 0 auto;
-      padding: 14px 14px 0;
-    }
-    .install-tip {
+    .route-banner {
       background: var(--primary-soft);
       border: 1px solid #bfdbfe;
-      color: #1e3a8a;
       border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 12.5px;
-      line-height: 1.5;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .login-card, .route-banner, .stop-card, .empty-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    }
-    .field-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .code-input {
-      width: 100%;
       padding: 12px 14px;
-      font-size: 17px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
     }
-    .route-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .line-badge {
-      font-size: 20px;
+    .route-banner-main {
+      font-size: 18px;
       font-weight: 800;
       color: var(--primary);
     }
-    .vehicle-badge {
-      background: #111827;
-      color: #fff;
-      font-size: 15px;
+    .route-banner-sub {
+      font-size: 13px;
+      color: #1e3a8a;
+      margin-top: 4px;
+    }
+    .schedule-highlight {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #93c5fd;
+      font-size: 14px;
       font-weight: 700;
-      padding: 5px 12px;
-      border-radius: 999px;
+      color: #0f172a;
     }
-    .sync-row {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px dashed var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--muted);
+    .stop-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
     }
-    .stop-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .stop-seq {
-      background: var(--primary-soft);
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 12px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-right: 6px;
-    }
-    .member-name { font-size: 17px; font-weight: 700; }
-    .special-tag {
+    .stop-title { font-size: 17px; font-weight: 800; }
+    .stop-meta { font-size: 13.5px; color: #374151; margin-top: 5px; line-height: 1.45; }
+    .tag {
       display: inline-block;
       margin-top: 6px;
       background: #fef2f2;
@@ -167,51 +119,29 @@
       border: 1px solid #fecaca;
       font-size: 12px;
       font-weight: 600;
-      padding: 3px 8px;
+      padding: 2px 8px;
       border-radius: 6px;
     }
-    .info-line {
-      font-size: 13.5px;
-      color: #374151;
-      margin: 5px 0;
-      line-height: 1.45;
-    }
-    .status-chips {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 10px 0 12px;
-      font-size: 12px;
-    }
-    .chip-done {
-      background: var(--success-soft);
-      color: var(--success);
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-weight: 600;
-    }
-    .chip-pending {
-      background: #f3f4f6;
-      color: #4b5563;
-      padding: 3px 8px;
-      border-radius: 999px;
-    }
-    .actions-grid {
+    .action-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 10px;
+      margin-top: 12px;
     }
     .action-btn {
-      padding: 11px 10px;
-      border-radius: 10px;
-      font-size: 13.5px;
-      font-weight: 700;
-      border: 1px solid var(--border);
-      background: #f9fafb;
-      color: var(--text);
+      padding: 13px 10px;
+      border-radius: 11px;
+      border: 1.5px solid #cbd5e1;
+      background: #fff;
+      color: #111827;
+      font-size: 15px;
+      font-weight: 800;
       cursor: pointer;
-      text-align: center;
-      text-decoration: none;
+    }
+    .action-btn.done {
+      background: var(--success-soft);
+      border-color: #10b981;
+      color: var(--success);
     }
     .toast {
       position: fixed;
@@ -220,13 +150,14 @@
       transform: translateX(-50%);
       background: #111827;
       color: #fff;
-      padding: 9px 16px;
-      border-radius: 999px;
-      font-size: 13px;
-      z-index: 50;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      z-index: 60;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
+      white-space: nowrap;
     }
     .toast.show { opacity: 1; }
   </style>
@@ -234,229 +165,201 @@
 <body>
   <header class="topbar">
     <div>
-      <h1 class="topbar-title">司机端接送单</h1>
-      <div class="topbar-sub" id="driverSubTitle">请使用调度员分配的专用码登录</div>
+      <div class="topbar-title">司机端任务清单</div>
+      <div class="topbar-sub" id="driverSubInfo">请先输入登录代码</div>
     </div>
-    <div id="headerActions"></div>
+    <div id="topbarActions" style="display:none;gap:6px;">
+      <button class="btn" onclick="manualRefresh()">刷新更新</button>
+      <button class="btn" onclick="logoutDriver()">切换登录</button>
+    </div>
   </header>
 
-  <main class="container">
-    <div class="install-tip" id="installTip">
-      <div>
-        <strong>添加到手机桌面：</strong><br />
-        iPhone Safari 点底部「分享」→「添加到主屏幕」；安卓浏览器点菜单 →「添加到主屏幕」，即可像 App 一样打开。
-      </div>
-      <button class="btn" style="padding:4px 8px;font-size:12px;" onclick="dismissInstallTip()">关闭</button>
-    </div>
-
-    <section class="login-card" id="loginSection">
-      <label class="field-label" for="driverCodeInput">输入司机专用登录码</label>
-      <input id="driverCodeInput" class="code-input" type="text" placeholder="例如：CHEN01" autocomplete="off" />
-      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="handleLogin()">
-        登录查看今日接送单
-      </button>
+  <div class="container">
+    <section class="card" id="loginCard">
+      <h2 style="margin:0 0 8px;font-size:18px;">输入司机专用登录代码</h2>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted);">
+        输入调度员分配给您的登录代码（例如 <code>CHEN01</code>）查看当前指派线路、发车时间与站点。
+      </p>
+      <input class="input" id="driverCodeInput" placeholder="请输入登录代码，例如 CHEN01" autocomplete="off" />
+      <button class="btn btn-primary" onclick="loginByCode()">登录并查看任务</button>
+      <div id="loginError" style="color:#b91c1c;font-size:13px;margin-top:8px;"></div>
     </section>
 
-    <section id="workspaceSection" style="display:none;">
-      <div class="route-banner">
-        <div class="route-header-row">
-          <div>
-            <span class="line-badge" id="routeLineDisplay">-</span>
-            <span style="margin-left:8px;font-size:14px;color:var(--muted);" id="driverNameDisplay"></span>
-          </div>
-          <span class="vehicle-badge" id="routeVehicleDisplay">未指定车辆</span>
-        </div>
-        <div class="sync-row">
-          <span id="lastSyncText">上次同步：--:--:--</span>
-          <button class="btn btn-primary" onclick="manualRefresh()">刷新更新</button>
-        </div>
-      </div>
-
-      <div id="stopsContainer"></div>
-    </section>
-  </main>
+    <div id="taskWorkspace" style="display:none;"></div>
+  </div>
 
   <div class="toast" id="toast"></div>
 
   <script src="./firebase-config.js"></script>
   <script>
-    const SESSION_DRIVER_ID_KEY = 'fleet_logged_driver_id_v2';
-    let appState = null;
-    let currentDriverId = localStorage.getItem(SESSION_DRIVER_ID_KEY) || '';
+    const SESSION_KEY = 'fleet_driver_session_code_v1';
+    let state = null;
+    let currentDriver = null;
 
     function showToast(msg) {
       const el = document.getElementById('toast');
       el.textContent = msg;
       el.classList.add('show');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+      clearTimeout(window.__drvToast);
+      window.__drvToast = setTimeout(() => el.classList.remove('show'), 2000);
     }
 
-    function dismissInstallTip() {
-      document.getElementById('installTip').style.display = 'none';
-    }
-
-    function formatTime(iso) {
-      if (!iso) return '--:--:--';
+    function formatShortTime(iso) {
+      if (!iso) return '';
       return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
     }
 
-    function getCurrentDriver() {
-      if (!appState || !currentDriverId) return null;
-      return appState.drivers.find(d => d.id === currentDriverId) || null;
+    function getTodayDateStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
-    function getAssignedRoute(driverId) {
-      if (!appState || !driverId) return null;
-      return appState.routes.find(r => r.assignedDriverId === driverId) || null;
+    function formatScheduleDisplay(route) {
+      const dateStr = (route && route.dispatchDate) || getTodayDateStr();
+      const timeStr = (route && route.departureTime) || '08:00';
+      return `${dateStr} · 发车时间 ${timeStr}`;
     }
 
-    async function handleLogin() {
-      const rawCode = (document.getElementById('driverCodeInput').value || '').trim().toUpperCase();
-      if (!rawCode) {
-        showToast('请输入登录码');
-        return;
-      }
-      appState = await window.FleetSync.loadState();
-      const matched = appState.drivers.find(d => String(d.code || '').trim().toUpperCase() === rawCode);
+    function findDriverByCode(code) {
+      const normalized = (code || '').trim().toUpperCase();
+      if (!normalized || !state || !Array.isArray(state.drivers)) return null;
+      return state.drivers.find(d => (d.code || '').trim().toUpperCase() === normalized) || null;
+    }
+
+    async function loginByCode() {
+      const input = document.getElementById('driverCodeInput');
+      const errEl = document.getElementById('loginError');
+      const matched = findDriverByCode(input.value);
       if (!matched) {
-        showToast('登录码无效，请联系调度员核对');
+        errEl.textContent = '未找到该登录代码，请核对后重试或联系调度员。';
         return;
       }
-      currentDriverId = matched.id;
-      localStorage.setItem(SESSION_DRIVER_ID_KEY, currentDriverId);
-      render();
+      errEl.textContent = '';
+      currentDriver = matched;
+      sessionStorage.setItem(SESSION_KEY, matched.code);
+      renderWorkspace();
       showToast(`欢迎，${matched.name}`);
     }
 
-    function handleLogout() {
-      currentDriverId = '';
-      localStorage.removeItem(SESSION_DRIVER_ID_KEY);
+    function logoutDriver() {
+      currentDriver = null;
+      sessionStorage.removeItem(SESSION_KEY);
+      document.getElementById('topbarActions').style.display = 'none';
+      document.getElementById('taskWorkspace').style.display = 'none';
+      document.getElementById('loginCard').style.display = 'block';
+      document.getElementById('driverSubInfo').textContent = '请先输入登录代码';
       document.getElementById('driverCodeInput').value = '';
-      render();
     }
 
     async function manualRefresh() {
-      appState = await window.FleetSync.loadState();
-      render();
-      showToast('已刷新获取最新调度单');
-    }
-
-    async function toggleStopFlag(stopIndex, field) {
-      const driver = getCurrentDriver();
-      if (!driver) return;
-      const route = getAssignedRoute(driver.id);
-      if (!route || !route.stops[stopIndex]) return;
-
-      route.stops[stopIndex][field] = !route.stops[stopIndex][field];
-      route.stops[stopIndex].updatedAt = new Date().toISOString();
-
-      appState = await window.FleetSync.saveState(appState);
-      render();
-      showToast(field === 'pickedUp' ? '已同步接送状态至调度端' : '已同步餐食送达状态至调度端');
-    }
-
-    function render() {
-      const driver = getCurrentDriver();
-      const loginSection = document.getElementById('loginSection');
-      const workspaceSection = document.getElementById('workspaceSection');
-      const headerActions = document.getElementById('headerActions');
-      const subTitle = document.getElementById('driverSubTitle');
-
-      if (!driver) {
-        loginSection.style.display = 'block';
-        workspaceSection.style.display = 'none';
-        subTitle.textContent = '请使用调度员分配的专用码登录';
-        headerActions.innerHTML = `<button class="btn" onclick="manualRefresh()">刷新</button>`;
-        return;
+      state = await window.FleetSync.loadState();
+      if (currentDriver) {
+        currentDriver = state.drivers.find(d => d.id === currentDriver.id) || null;
       }
+      renderWorkspace();
+      showToast('已刷新线路与发车时间');
+    }
 
-      loginSection.style.display = 'none';
-      workspaceSection.style.display = 'block';
-      subTitle.textContent = `当前司机：${driver.name}（代码：${driver.code}）`;
-      headerActions.innerHTML = `
-        <button class="btn" onclick="manualRefresh()">刷新更新</button>
-        <button class="btn" onclick="handleLogout()">退出</button>
-      `;
+    async function toggleStopFlag(routeId, stopIndex, field) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route || !route.stops || !route.stops[stopIndex]) return;
+      const stop = route.stops[stopIndex];
+      stop[field] = !stop[field];
+      stop.updatedAt = new Date().toISOString();
+      state = await window.FleetSync.saveState(state);
+      renderWorkspace();
+      if (field === 'pickedUp') {
+        showToast(stop.pickedUp ? '已确认接送' : '已取消接送确认');
+      } else {
+        showToast(stop.mealDelivered ? '已确认餐食送达' : '已取消送餐确认');
+      }
+    }
 
-      const route = getAssignedRoute(driver.id);
-      document.getElementById('driverNameDisplay').textContent = `指定司机：${driver.name}`;
-      document.getElementById('lastSyncText').textContent = `数据更新时间：${formatTime(appState.updatedAt)}`;
+    function renderWorkspace() {
+      if (!currentDriver) return;
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('topbarActions').style.display = 'flex';
+      document.getElementById('driverSubInfo').textContent =
+        `${currentDriver.name}（${currentDriver.code}）· ${window.FleetSync.ENABLE_FIREBASE ? '云端同步已开启' : '本地同步模式'}`;
 
-      const stopsContainer = document.getElementById('stopsContainer');
-      if (!route) {
-        document.getElementById('routeLineDisplay').textContent = '暂未指定线路';
-        document.getElementById('routeVehicleDisplay').textContent = '待指派';
-        stopsContainer.innerHTML = `
-          <div class="empty-card">
-            调度员暂未将线路指派给您，请点击上方<strong>「刷新更新」</strong>或联系调度员。
+      const workspace = document.getElementById('taskWorkspace');
+      workspace.style.display = 'block';
+
+      const assignedRoutes = (state.routes || []).filter(r => r.assignedDriverId === currentDriver.id);
+      if (assignedRoutes.length === 0) {
+        workspace.innerHTML = `
+          <div class="card" style="text-align:center;padding:28px 16px;">
+            <div style="font-size:16px;font-weight:700;margin-bottom:6px;">当前暂未指派线路</div>
+            <div style="font-size:13px;color:var(--muted);">调度员指派线路与发车时间后，可点击右上角「刷新更新」查看。</div>
           </div>
         `;
         return;
       }
 
-      document.getElementById('routeLineDisplay').textContent = route.lineName;
-      document.getElementById('routeVehicleDisplay').textContent = route.vehicleNo || '未指定车辆';
+      const memberMap = new Map((state.members || []).map(m => [m.id, m]));
 
-      if (!route.stops || route.stops.length === 0) {
-        stopsContainer.innerHTML = `
-          <div class="empty-card">
-            ${route.lineName}（${route.vehicleNo || '未指定车辆'} · ${driver.name}）当前还没有安排接送会员。
-          </div>
-        `;
-        return;
-      }
+      workspace.innerHTML = assignedRoutes.map(route => {
+        const stops = route.stops || [];
+        const stopsHtml = stops.length === 0
+          ? `<div class="card" style="text-align:center;color:var(--muted);">当前线路暂无接送或送餐站点</div>`
+          : stops.map((stop, idx) => {
+              const m = memberMap.get(stop.memberId);
+              if (!m) return '';
+              return `
+                <div class="stop-card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span class="stop-title">#${idx + 1} ${m.name}</span>
+                    <span style="font-size:12px;color:var(--muted);">${stop.updatedAt ? '更新 ' + formatShortTime(stop.updatedAt) : ''}</span>
+                  </div>
+                  <div class="stop-meta"><strong>地址：</strong>${m.address || '-'}</div>
+                  <div class="stop-meta"><strong>电话：</strong><a href="tel:${m.phone || ''}" style="color:var(--primary);text-decoration:none;font-weight:600;">${m.phone || '-'}</a></div>
+                  ${m.specialNeeds ? `<div class="tag">特殊需要：${m.specialNeeds}</div>` : ''}
+                  ${m.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${m.notes}</div>` : ''}
 
-      const memberMap = new Map(appState.members.map(m => [m.id, m]));
-      stopsContainer.innerHTML = route.stops.map((stop, idx) => {
-        const member = memberMap.get(stop.memberId);
-        if (!member) return '';
-        const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(member.address || '')}`;
-        const telUrl = `tel:${encodeURIComponent((member.phone || '').replace(/[^+\d]/g, ''))}`;
+                  <div class="action-grid">
+                    <button class="action-btn ${stop.pickedUp ? 'done' : ''}" onclick="toggleStopFlag('${route.id}', ${idx}, 'pickedUp')">
+                      ${stop.pickedUp ? '✓ 已接送' : '确认已接送'}
+                    </button>
+                    <button class="action-btn ${stop.mealDelivered ? 'done' : ''}" onclick="toggleStopFlag('${route.id}', ${idx}, 'mealDelivered')">
+                      ${stop.mealDelivered ? '✓ 餐食已送达' : '餐食已送达'}
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('');
 
         return `
-          <article class="stop-card">
-            <div class="stop-top">
-              <div>
-                <span class="stop-seq">第 ${idx + 1} 站</span>
-                <span class="member-name">${member.name}</span>
-              </div>
-            </div>
-            <div class="info-line"><strong>电话：</strong>${member.phone || '无'}</div>
-            <div class="info-line"><strong>地址：</strong>${member.address || '无'}</div>
-            ${member.specialNeeds ? `<div class="special-tag">特殊需要：${member.specialNeeds}</div>` : ''}
-            ${member.notes ? `<div class="info-line" style="margin-top:6px;color:var(--muted);">备注：${member.notes}</div>` : ''}
-
-            <div class="status-chips">
-              <span class="${stop.pickedUp ? 'chip-done' : 'chip-pending'}">
-                ${stop.pickedUp ? '✓ 已接送' : '○ 待接送'}
-              </span>
-              <span class="${stop.mealDelivered ? 'chip-done' : 'chip-pending'}">
-                ${stop.mealDelivered ? '✓ 餐食已送达' : '○ 餐食待送达'}
-              </span>
-            </div>
-
-            <div class="actions-grid">
-              <a class="action-btn" href="${telUrl}">拨打电话</a>
-              <a class="action-btn" href="${navUrl}" target="_blank" rel="noopener noreferrer">一键导航</a>
-              <button class="action-btn ${stop.pickedUp ? 'btn-soft-success' : ''}" onclick="toggleStopFlag(${idx}, 'pickedUp')">
-                ${stop.pickedUp ? '已确认接送（撤销）' : '确认已接送'}
-              </button>
-              <button class="action-btn ${stop.mealDelivered ? 'btn-soft-amber' : ''}" onclick="toggleStopFlag(${idx}, 'mealDelivered')">
-                ${stop.mealDelivered ? '餐食已送达（撤销）' : '餐食已送达'}
-              </button>
-            </div>
-          </article>
+          <div class="route-banner">
+            <div class="route-banner-main">${route.lineName} · ${route.vehicleNo || '未指定车辆'}</div>
+            <div class="route-banner-sub">执勤司机：${currentDriver.name} · 共 ${stops.length} 个站点</div>
+            <div class="schedule-highlight">📅 日期与发车时间：${formatScheduleDisplay(route)}</div>
+          </div>
+          ${stopsHtml}
         `;
       }).join('');
     }
 
     (async function init() {
-      appState = await window.FleetSync.loadState();
-      render();
+      state = await window.FleetSync.loadState();
+      const savedCode = sessionStorage.getItem(SESSION_KEY);
+      if (savedCode) {
+        const matched = findDriverByCode(savedCode);
+        if (matched) {
+          currentDriver = matched;
+          renderWorkspace();
+        }
+      }
+
       window.FleetSync.onRemoteChange((latest) => {
-        appState = latest;
-        render();
+        state = latest;
+        if (currentDriver) {
+          currentDriver = state.drivers.find(d => d.id === currentDriver.id) || currentDriver;
+          renderWorkspace();
+          showToast('线路或发车时间已同步更新');
+        }
       });
     })();
   </script>

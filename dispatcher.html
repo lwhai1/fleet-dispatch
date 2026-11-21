@@ -62,6 +62,27 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .batch-schedule-bar {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .batch-schedule-bar label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .form-group { margin-bottom: 10px; }
     .form-group label {
@@ -79,6 +100,11 @@
       font-size: 13.5px;
       background: #fff;
     }
+    .input-sm {
+      width: auto;
+      padding: 6px 8px;
+      font-size: 12.5px;
+    }
     .btn {
       border: 1px solid var(--border);
       background: #fff;
@@ -88,6 +114,8 @@
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
     }
     .btn-primary {
       background: var(--primary);
@@ -187,6 +215,16 @@
       border-bottom: 1px solid #f1f5f9;
     }
     .route-name { font-size: 16px; font-weight: 800; color: var(--primary); }
+    .schedule-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+      background: #f9fafb;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #eef2f6;
+    }
     .assign-controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -317,9 +355,24 @@
     <div>
       <section class="panel">
         <h2 class="panel-title">
-          <span>线路排班 · 临时指定车辆与指定司机</span>
+          <span>线路排班 · 日期发车时间、临时指定车辆与指定司机</span>
           <span style="font-size:12px;color:var(--muted);font-weight:400;">司机确认状态后此处自动同步更新</span>
         </h2>
+
+        <div class="batch-schedule-bar">
+          <label>
+            统一日期：
+            <input type="date" class="input input-sm" id="batchDateInput" />
+          </label>
+          <label>
+            统一发车时间：
+            <input type="time" class="input input-sm" id="batchTimeInput" value="08:00" />
+          </label>
+          <button class="btn btn-primary" style="padding:6px 10px;font-size:12.5px;" onclick="applyBatchSchedule()">
+            应用到所有线路
+          </button>
+        </div>
+
         <div class="routes-grid" id="routesGrid"></div>
       </section>
     </div>
@@ -333,6 +386,31 @@
     const NO_PICKUP_VALUE = '__NO_PICKUP__';
     let state = null;
     let draggedMemberId = null;
+
+    function getTodayDateStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function normalizeScheduleFields() {
+      const defaultDate = getTodayDateStr();
+      const defaultTime = '08:00';
+      (state.routes || []).forEach(r => {
+        if (!r.dispatchDate) r.dispatchDate = defaultDate;
+        if (!r.departureTime) r.departureTime = defaultTime;
+      });
+      const dateEl = document.getElementById('batchDateInput');
+      const timeEl = document.getElementById('batchTimeInput');
+      if (dateEl && !dateEl.value) {
+        dateEl.value = (state.routes[0] && state.routes[0].dispatchDate) || defaultDate;
+      }
+      if (timeEl && !timeEl.value) {
+        timeEl.value = (state.routes[0] && state.routes[0].departureTime) || defaultTime;
+      }
+    }
 
     function showToast(msg) {
       const el = document.getElementById('toast');
@@ -348,6 +426,7 @@
     }
 
     async function persist(msg) {
+      normalizeScheduleFields();
       state = await window.FleetSync.saveState(state);
       renderAll();
       if (msg) showToast(msg);
@@ -355,8 +434,30 @@
 
     async function refreshFromStore() {
       state = await window.FleetSync.loadState();
+      normalizeScheduleFields();
       renderAll();
       showToast('已同步最新状态');
+    }
+
+    async function updateRouteSchedule(routeId, field, value) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      route[field] = value;
+      await persist(`${route.lineName} 已更新为 ${route.dispatchDate || ''} ${route.departureTime || ''}`.trim());
+    }
+
+    async function applyBatchSchedule() {
+      const dateVal = document.getElementById('batchDateInput').value;
+      const timeVal = document.getElementById('batchTimeInput').value;
+      if (!dateVal && !timeVal) {
+        showToast('请先选择日期或发车时间');
+        return;
+      }
+      state.routes.forEach(r => {
+        if (dateVal) r.dispatchDate = dateVal;
+        if (timeVal) r.departureTime = timeVal;
+      });
+      await persist(`已将所有线路设为 ${dateVal || ''} ${timeVal || ''}`.trim());
     }
 
     function resetMemberForm() {
@@ -605,6 +706,16 @@
               <span class="route-name">${route.lineName}</span>
               <span style="font-size:12px;color:var(--muted);">共 ${(route.stops || []).length} 站</span>
             </div>
+            <div class="schedule-controls">
+              <div>
+                <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">日期</label>
+                <input type="date" class="input" style="padding:6px 8px;font-size:12.5px;" value="${route.dispatchDate || ''}" onchange="updateRouteSchedule('${route.id}', 'dispatchDate', this.value)" />
+              </div>
+              <div>
+                <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">发车时间</label>
+                <input type="time" class="input" style="padding:6px 8px;font-size:12.5px;" value="${route.departureTime || ''}" onchange="updateRouteSchedule('${route.id}', 'departureTime', this.value)" />
+              </div>
+            </div>
             <div class="assign-controls">
               <div>
                 <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定车辆</label>
@@ -635,11 +746,13 @@
 
     (async function init() {
       state = await window.FleetSync.loadState();
+      normalizeScheduleFields();
       renderAll();
       window.FleetSync.onRemoteChange((latest) => {
         state = latest;
+        normalizeScheduleFields();
         renderAll();
-        showToast('收到司机端状态更新');
+        showToast('收到状态更新');
       });
     })();
   </script>
