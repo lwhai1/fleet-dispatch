@@ -1,11 +1,9 @@
-import os
-
-dispatcher_html = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>调度员端 · 线路、车辆（1–9号车）与司机指派管理</title>
+  <title>调度员端 · 线路、车辆与司机指派管理</title>
   <style>
     :root {
       --bg: #f3f5f8;
@@ -126,14 +124,19 @@ dispatcher_html = """<!DOCTYPE html>
       align-items: center;
       gap: 6px;
     }
-    .driver-roster-box {
+    .roster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .roster-box {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 10px 12px;
-      margin-bottom: 14px;
     }
-    .driver-roster-head {
+    .roster-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -141,24 +144,24 @@ dispatcher_html = """<!DOCTYPE html>
       gap: 8px;
       margin-bottom: 8px;
     }
-    .driver-roster-title {
+    .roster-title {
       font-size: 13px;
       font-weight: 700;
       color: #1e293b;
     }
-    .driver-add-form {
+    .roster-add-form {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
-    .driver-chips {
+    .roster-chips {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
     }
-    .driver-chip {
+    .roster-chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -170,7 +173,7 @@ dispatcher_html = """<!DOCTYPE html>
       font-weight: 600;
       color: #111827;
     }
-    .driver-chip-remove {
+    .roster-chip-remove {
       border: none;
       background: #fee2e2;
       color: #b91c1c;
@@ -416,7 +419,7 @@ dispatcher_html = """<!DOCTYPE html>
   <div id="appShell" style="display:none;">
     <header class="topbar">
       <div>
-        <h1>调度员端 · 线路、车辆（1–9号车）与司机指派管理</h1>
+        <h1>调度员端 · 线路、车辆与司机指派管理</h1>
         <div class="topbar-meta" id="syncStatusText">数据已就绪</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -509,25 +512,48 @@ dispatcher_html = """<!DOCTYPE html>
             </button>
           </div>
 
-          <div class="driver-roster-box">
-            <div class="driver-roster-head">
-              <span class="driver-roster-title">在岗司机管理（新增 / 移除离职司机）</span>
-              <span style="font-size:12px;color:var(--muted);" id="driverCountText">共 0 位</span>
+          <div class="roster-grid">
+            <div class="roster-box">
+              <div class="roster-head">
+                <span class="roster-title">可用车辆管理（新增 / 移除车辆）</span>
+                <span style="font-size:12px;color:var(--muted);" id="vehicleCountText">共 0 辆</span>
+              </div>
+              <form class="roster-add-form" onsubmit="addVehicle(event)">
+                <input
+                  type="text"
+                  class="input input-sm"
+                  id="newVehicleNameInput"
+                  placeholder="车辆名称，例如：10号车"
+                  style="min-width:150px;flex:1;"
+                  required
+                />
+                <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
+                  + 添加车辆
+                </button>
+              </form>
+              <div class="roster-chips" id="vehicleRosterChips"></div>
             </div>
-            <form class="driver-add-form" onsubmit="addDriver(event)">
-              <input
-                type="text"
-                class="input input-sm"
-                id="newDriverNameInput"
-                placeholder="新司机姓名，例如：赵师傅"
-                style="min-width:180px;flex:1;"
-                required
-              />
-              <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
-                + 添加司机
-              </button>
-            </form>
-            <div class="driver-chips" id="driverRosterChips"></div>
+
+            <div class="roster-box">
+              <div class="roster-head">
+                <span class="roster-title">在岗司机管理（新增 / 移除离职司机）</span>
+                <span style="font-size:12px;color:var(--muted);" id="driverCountText">共 0 位</span>
+              </div>
+              <form class="roster-add-form" onsubmit="addDriver(event)">
+                <input
+                  type="text"
+                  class="input input-sm"
+                  id="newDriverNameInput"
+                  placeholder="新司机姓名，例如：赵师傅"
+                  style="min-width:150px;flex:1;"
+                  required
+                />
+                <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
+                  + 添加司机
+                </button>
+              </form>
+              <div class="roster-chips" id="driverRosterChips"></div>
+            </div>
           </div>
 
           <div class="routes-grid" id="routesGrid"></div>
@@ -543,7 +569,7 @@ dispatcher_html = """<!DOCTYPE html>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="./firebase-config.js"></script>
   <script>
-    const VEHICLES = ['1号车', '2号车', '3号车', '4号车', '5号车', '6号车', '7号车', '8号车', '9号车'];
+    const DEFAULT_VEHICLES = ['1号车', '2号车', '3号车', '4号车', '5号车', '6号车', '7号车', '8号车', '9号车'];
     const NO_PICKUP_VALUE = '__NO_PICKUP__';
     const DB_ROOT_PATH = 'fleetDispatchState';
 
@@ -567,6 +593,7 @@ dispatcher_html = """<!DOCTYPE html>
       const base = (window.FleetSync && window.FleetSync.DEFAULT_STATE)
         ? JSON.parse(JSON.stringify(window.FleetSync.DEFAULT_STATE))
         : {
+            vehicles: DEFAULT_VEHICLES.slice(),
             drivers: [
               { id: 'd1', name: '陈师傅', code: 'CHEN01' },
               { id: 'd2', name: '李师傅', code: 'LI02' },
@@ -579,6 +606,9 @@ dispatcher_html = """<!DOCTYPE html>
               { id: 'r3', lineName: '3号线', vehicleNo: '3号车', assignedDriverId: 'd3', dispatchDate: '', departureTime: '08:00', stops: [] }
             ]
           };
+      if (!Array.isArray(base.vehicles)) {
+        base.vehicles = DEFAULT_VEHICLES.slice();
+      }
       base.updatedAt = base.updatedAt || new Date().toISOString();
       return base;
     }
@@ -632,7 +662,11 @@ dispatcher_html = """<!DOCTYPE html>
 
     function normalizeState(raw) {
       const fallback = getDefaultState();
+      const hasRawVehicles = raw && Object.prototype.hasOwnProperty.call(raw, 'vehicles');
       const next = Object.assign({}, fallback, raw || {});
+      next.vehicles = hasRawVehicles
+        ? (Array.isArray(raw.vehicles) ? raw.vehicles.filter(Boolean) : [])
+        : DEFAULT_VEHICLES.slice();
       next.drivers = Array.isArray(next.drivers) ? next.drivers : [];
       next.members = Array.isArray(next.members) ? next.members : [];
       next.routes = Array.isArray(next.routes) && next.routes.length ? next.routes : fallback.routes;
@@ -693,6 +727,68 @@ dispatcher_html = """<!DOCTYPE html>
       if (auth) await auth.signOut();
     }
 
+    async function addVehicle(e) {
+      e.preventDefault();
+      const input = document.getElementById('newVehicleNameInput');
+      if (!input) return;
+      const vehicleName = input.value.trim();
+      if (!vehicleName) {
+        showToast('请输入车辆名称');
+        return;
+      }
+      state.vehicles = state.vehicles || [];
+      if (state.vehicles.includes(vehicleName)) {
+        showToast(`${vehicleName} 已存在`);
+        return;
+      }
+      state.vehicles.push(vehicleName);
+      input.value = '';
+      await persist(`已添加车辆：${vehicleName}`);
+    }
+
+    async function removeVehicle(index) {
+      const vehicles = state.vehicles || [];
+      if (index < 0 || index >= vehicles.length) return;
+      const targetName = vehicles[index];
+      state.vehicles = vehicles.filter((_, idx) => idx !== index);
+      (state.routes || []).forEach(r => {
+        if (r.vehicleNo === targetName) {
+          r.vehicleNo = '';
+        }
+      });
+      await persist(`已移除车辆：${targetName}`);
+    }
+
+    function renderVehicleRoster() {
+      if (!state) return;
+      const vehicles = state.vehicles || [];
+      const countEl = document.getElementById('vehicleCountText');
+      const chipsEl = document.getElementById('vehicleRosterChips');
+
+      if (countEl) {
+        countEl.textContent = `共 ${vehicles.length} 辆`;
+      }
+      if (!chipsEl) return;
+
+      if (vehicles.length === 0) {
+        chipsEl.innerHTML = `<span style="font-size:12px;color:var(--muted);">暂无可用车辆，请在上方添加</span>`;
+        return;
+      }
+
+      chipsEl.innerHTML = vehicles.map((v, idx) => `
+        <span class="roster-chip">
+          <span>${escapeHtml(v)}</span>
+          <button
+            type="button"
+            class="roster-chip-remove"
+            title="移除车辆"
+            aria-label="移除车辆 ${escapeHtml(v)}"
+            onclick="removeVehicle(${idx})"
+          >×</button>
+        </span>
+      `).join('');
+    }
+
     async function addDriver(e) {
       e.preventDefault();
       const input = document.getElementById('newDriverNameInput');
@@ -742,11 +838,11 @@ dispatcher_html = """<!DOCTYPE html>
       }
 
       chipsEl.innerHTML = drivers.map(d => `
-        <span class="driver-chip">
+        <span class="roster-chip">
           <span>${escapeHtml(d.name)}</span>
           <button
             type="button"
-            class="driver-chip-remove"
+            class="roster-chip-remove"
             title="移除司机"
             aria-label="移除司机 ${escapeHtml(d.name)}"
             onclick="removeDriver('${escapeHtml(d.id)}')"
@@ -999,10 +1095,11 @@ dispatcher_html = """<!DOCTYPE html>
     function renderRoutes() {
       const container = document.getElementById('routesGrid');
       const memberMap = new Map(state.members.map(m => [m.id, m]));
+      const availableVehicles = state.vehicles || [];
 
       container.innerHTML = state.routes.map(route => {
         const vehicleOptions = [`<option value="">未指定车辆</option>`]
-          .concat(VEHICLES.map(v => `<option value="${v}" ${route.vehicleNo === v ? 'selected' : ''}>${v}</option>`))
+          .concat(availableVehicles.map(v => `<option value="${escapeHtml(v)}" ${route.vehicleNo === v ? 'selected' : ''}>${escapeHtml(v)}</option>`))
           .join('');
 
         const driverOptions = [`<option value="">未指定司机</option>`]
@@ -1081,6 +1178,7 @@ dispatcher_html = """<!DOCTYPE html>
       if (!state) return;
       document.getElementById('syncStatusText').textContent =
         `最近更新：${new Date(state.updatedAt || Date.now()).toLocaleString('zh-CN')} · Firebase 云端已认证同步`;
+      renderVehicleRoster();
       renderDriverRoster();
       renderMemberPool();
       renderRoutes();
@@ -1140,9 +1238,3 @@ dispatcher_html = """<!DOCTYPE html>
   </script>
 </body>
 </html>
-"""
-
-with open("dispatcher_with_drivers.html", "w", encoding="utf-8") as f:
-    f.write(dispatcher_html.strip() + "\n")
-
-print("Generated dispatcher_with_drivers.html")
