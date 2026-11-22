@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+import os
+
+dispatcher_html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -110,7 +112,7 @@
       border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 10px 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -123,6 +125,63 @@
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+    .driver-roster-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+    .driver-roster-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .driver-roster-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .driver-add-form {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .driver-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .driver-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .driver-chip-remove {
+      border: none;
+      background: #fee2e2;
+      color: #b91c1c;
+      border-radius: 999px;
+      width: 18px;
+      height: 18px;
+      line-height: 16px;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
     }
     .form-group { margin-bottom: 10px; }
     .form-group label {
@@ -450,6 +509,27 @@
             </button>
           </div>
 
+          <div class="driver-roster-box">
+            <div class="driver-roster-head">
+              <span class="driver-roster-title">在岗司机管理（新增 / 移除离职司机）</span>
+              <span style="font-size:12px;color:var(--muted);" id="driverCountText">共 0 位</span>
+            </div>
+            <form class="driver-add-form" onsubmit="addDriver(event)">
+              <input
+                type="text"
+                class="input input-sm"
+                id="newDriverNameInput"
+                placeholder="新司机姓名，例如：赵师傅"
+                style="min-width:180px;flex:1;"
+                required
+              />
+              <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
+                + 添加司机
+              </button>
+            </form>
+            <div class="driver-chips" id="driverRosterChips"></div>
+          </div>
+
           <div class="routes-grid" id="routesGrid"></div>
         </section>
       </div>
@@ -474,6 +554,14 @@
     let draggedMemberId = null;
     let isSubscribed = false;
     let memberSearchKeyword = '';
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
 
     function getDefaultState() {
       const base = (window.FleetSync && window.FleetSync.DEFAULT_STATE)
@@ -545,7 +633,7 @@
     function normalizeState(raw) {
       const fallback = getDefaultState();
       const next = Object.assign({}, fallback, raw || {});
-      next.drivers = Array.isArray(next.drivers) && next.drivers.length ? next.drivers : fallback.drivers;
+      next.drivers = Array.isArray(next.drivers) ? next.drivers : [];
       next.members = Array.isArray(next.members) ? next.members : [];
       next.routes = Array.isArray(next.routes) && next.routes.length ? next.routes : fallback.routes;
 
@@ -603,6 +691,68 @@
 
     async function logoutDispatcher() {
       if (auth) await auth.signOut();
+    }
+
+    async function addDriver(e) {
+      e.preventDefault();
+      const input = document.getElementById('newDriverNameInput');
+      if (!input) return;
+      const name = input.value.trim();
+      if (!name) {
+        showToast('请输入司机姓名');
+        return;
+      }
+      const newDriver = {
+        id: 'd-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        name,
+        code: ''
+      };
+      state.drivers = state.drivers || [];
+      state.drivers.push(newDriver);
+      input.value = '';
+      await persist(`已添加司机：${name}`);
+    }
+
+    async function removeDriver(driverId) {
+      const target = (state.drivers || []).find(d => d.id === driverId);
+      if (!target) return;
+      state.drivers = (state.drivers || []).filter(d => d.id !== driverId);
+      (state.routes || []).forEach(r => {
+        if (r.assignedDriverId === driverId) {
+          r.assignedDriverId = '';
+        }
+      });
+      await persist(`已移除司机：${target.name}`);
+    }
+
+    function renderDriverRoster() {
+      if (!state) return;
+      const drivers = state.drivers || [];
+      const countEl = document.getElementById('driverCountText');
+      const chipsEl = document.getElementById('driverRosterChips');
+
+      if (countEl) {
+        countEl.textContent = `共 ${drivers.length} 位`;
+      }
+      if (!chipsEl) return;
+
+      if (drivers.length === 0) {
+        chipsEl.innerHTML = `<span style="font-size:12px;color:var(--muted);">暂无在岗司机，请在上方添加</span>`;
+        return;
+      }
+
+      chipsEl.innerHTML = drivers.map(d => `
+        <span class="driver-chip">
+          <span>${escapeHtml(d.name)}</span>
+          <button
+            type="button"
+            class="driver-chip-remove"
+            title="移除司机"
+            aria-label="移除司机 ${escapeHtml(d.name)}"
+            onclick="removeDriver('${escapeHtml(d.id)}')"
+          >×</button>
+        </span>
+      `).join('');
     }
 
     async function updateRouteSchedule(routeId, field, value) {
@@ -822,15 +972,15 @@
         return `
           <div class="member-card" draggable="true" ondragstart="draggedMemberId='${m.id}'">
             <div class="member-head">
-              <span>${m.name}</span>
-              <span style="font-size:12px;color:var(--muted);font-weight:400;">${m.phone || ''}</span>
+              <span>${escapeHtml(m.name)}</span>
+              <span style="font-size:12px;color:var(--muted);font-weight:400;">${escapeHtml(m.phone || '')}</span>
             </div>
             <div>
               ${routeBadgeHtml}
-              ${m.specialNeeds ? `<span class="tag">特殊需要：${m.specialNeeds}</span>` : ''}
+              ${m.specialNeeds ? `<span class="tag">特殊需要：${escapeHtml(m.specialNeeds)}</span>` : ''}
             </div>
-            <div class="member-detail">${m.address || ''}</div>
-            ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${m.notes}</div>` : ''}
+            <div class="member-detail">${escapeHtml(m.address || '')}</div>
+            ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${escapeHtml(m.notes)}</div>` : ''}
             <div class="member-actions">
               <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){handleMemberRouteSelect('${m.id}', this.value); this.value='';}">
                 <option value="">+ 加入线路...</option>
@@ -856,7 +1006,7 @@
           .join('');
 
         const driverOptions = [`<option value="">未指定司机</option>`]
-          .concat(state.drivers.map(d => `<option value="${d.id}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${d.name}</option>`))
+          .concat(state.drivers.map(d => `<option value="${d.id}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`))
           .join('');
 
         const stopsHtml = (!route.stops || route.stops.length === 0)
@@ -870,15 +1020,15 @@
               return `
                 <div class="stop-item">
                   <div class="stop-item-top">
-                    <span>#${idx + 1} ${m.name}</span>
+                    <span>#${idx + 1} ${escapeHtml(m.name)}</span>
                     <div style="display:flex;gap:4px;">
                       <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${route.id}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
                       <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${route.id}', ${idx}, 1)" ${idx === route.stops.length - 1 ? 'disabled' : ''}>↓</button>
                       <button class="btn btn-danger" type="button" style="padding:2px 6px;font-size:11px;" onclick="removeStop('${route.id}', ${idx})">移出</button>
                     </div>
                   </div>
-                  <div style="font-size:12px;color:#4b5563;margin-top:3px;">${m.address || ''}</div>
-                  ${m.specialNeeds ? `<span class="tag">${m.specialNeeds}</span>` : ''}
+                  <div style="font-size:12px;color:#4b5563;margin-top:3px;">${escapeHtml(m.address || '')}</div>
+                  ${m.specialNeeds ? `<span class="tag">${escapeHtml(m.specialNeeds)}</span>` : ''}
                   <div class="status-row">
                     <span class="status-pill ${stop.pickedUp ? 'ok' : ''}">${stop.pickedUp ? '✓ 已接送' : '待接送'}</span>
                     <span class="status-pill ${stop.mealDelivered ? 'ok' : ''}">${stop.mealDelivered ? '✓ 餐食已送达' : '餐食待送达'}</span>
@@ -931,6 +1081,7 @@
       if (!state) return;
       document.getElementById('syncStatusText').textContent =
         `最近更新：${new Date(state.updatedAt || Date.now()).toLocaleString('zh-CN')} · Firebase 云端已认证同步`;
+      renderDriverRoster();
       renderMemberPool();
       renderRoutes();
     }
@@ -989,3 +1140,9 @@
   </script>
 </body>
 </html>
+"""
+
+with open("dispatcher_with_drivers.html", "w", encoding="utf-8") as f:
+    f.write(dispatcher_html.strip() + "\n")
+
+print("Generated dispatcher_with_drivers.html")
