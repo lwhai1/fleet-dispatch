@@ -194,14 +194,6 @@
       border-color: #10b981;
       color: var(--success);
     }
-    .contact-edit-box {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px dashed #e5e7eb;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
     .error-text {
       color: #b91c1c;
       font-size: 13px;
@@ -291,6 +283,19 @@
     let selectedDriverId = '';
     let isSubscribed = false;
     let toastTimer = null;
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str);
+    }
 
     function showToast(msg) {
       const el = document.getElementById('toast');
@@ -416,7 +421,7 @@
       }
 
       select.innerHTML = drivers.map(d =>
-        `<option value="${d.id}" ${d.id === selectedDriverId ? 'selected' : ''}>${d.name}（${d.code || ''}）</option>`
+        `<option value="${escapeAttr(d.id)}" ${d.id === selectedDriverId ? 'selected' : ''}>${escapeHtml(d.name || '')}</option>`
       ).join('');
     }
 
@@ -429,16 +434,6 @@
       await saveCloudState(field === 'pickedUp'
         ? (stop.pickedUp ? '已确认接送' : '已取消接送确认')
         : (stop.mealDelivered ? '已确认餐食送达' : '已取消送餐确认'));
-    }
-
-    async function updateMemberPhone(memberId) {
-      const input = document.getElementById('phone-edit-' + memberId);
-      if (!input) return;
-      const nextPhone = input.value.trim();
-      const member = state.members.find(m => m.id === memberId);
-      if (!member) return;
-      member.phone = nextPhone;
-      await saveCloudState(`已更新 ${member.name} 的联系电话`);
     }
 
     function renderWorkspace() {
@@ -482,28 +477,23 @@
               return `
                 <div class="stop-card">
                   <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span class="stop-title">#${idx + 1} ${m.name || ''}</span>
-                    <span style="font-size:12px;color:var(--muted);">${stop.updatedAt ? '更新 ' + formatShortTime(stop.updatedAt) : ''}</span>
+                    <span class="stop-title">#${idx + 1} ${escapeHtml(m.name || '')}</span>
+                    <span style="font-size:12px;color:var(--muted);">${stop.updatedAt ? '更新 ' + escapeHtml(formatShortTime(stop.updatedAt)) : ''}</span>
                   </div>
-                  <div class="stop-meta"><strong>地址：</strong>${m.address || '-'}</div>
-                  <div class="stop-meta"><strong>电话：</strong>${m.phone || '-'}</div>
-                  ${m.specialNeeds ? `<div class="tag">特殊需要：${m.specialNeeds}</div>` : ''}
-                  ${m.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${m.notes}</div>` : ''}
+                  <div class="stop-meta"><strong>地址：</strong>${escapeHtml(m.address || '-')}</div>
+                  <div class="stop-meta"><strong>电话：</strong>${escapeHtml(m.phone || '-')}</div>
+                  ${m.specialNeeds ? `<div class="tag">特殊需要：${escapeHtml(m.specialNeeds)}</div>` : ''}
+                  ${m.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${escapeHtml(m.notes)}</div>` : ''}
 
                   <div class="four-btn-grid">
-                    <a class="quick-btn call-btn ${telHref ? '' : 'disabled'}" href="${telHref || '#'}">📞 一键呼叫</a>
-                    <a class="quick-btn ${navHref ? '' : 'disabled'}" href="${navHref || '#'}" target="_blank" rel="noopener noreferrer">🧭 一键导航</a>
-                    <button type="button" class="action-btn ${stop.pickedUp ? 'done' : ''}" data-action="toggle" data-route-id="${route.id}" data-stop-index="${idx}" data-field="pickedUp">
+                    <a class="quick-btn call-btn ${telHref ? '' : 'disabled'}" href="${escapeAttr(telHref || '#')}">📞 一键呼叫</a>
+                    <a class="quick-btn ${navHref ? '' : 'disabled'}" href="${escapeAttr(navHref || '#')}" target="_blank" rel="noopener noreferrer">🧭 一键导航</a>
+                    <button type="button" class="action-btn ${stop.pickedUp ? 'done' : ''}" data-action="toggle" data-route-id="${escapeAttr(route.id)}" data-stop-index="${idx}" data-field="pickedUp">
                       ${stop.pickedUp ? '✓ 已接送' : '确认已接送'}
                     </button>
-                    <button type="button" class="action-btn ${stop.mealDelivered ? 'done' : ''}" data-action="toggle" data-route-id="${route.id}" data-stop-index="${idx}" data-field="mealDelivered">
+                    <button type="button" class="action-btn ${stop.mealDelivered ? 'done' : ''}" data-action="toggle" data-route-id="${escapeAttr(route.id)}" data-stop-index="${idx}" data-field="mealDelivered">
                       ${stop.mealDelivered ? '✓ 餐食已送达' : '餐食已送达'}
                     </button>
-                  </div>
-
-                  <div class="contact-edit-box">
-                    <input class="input" style="padding:7px 9px;font-size:13px;flex:1;" id="phone-edit-${m.id}" value="${m.phone || ''}" placeholder="修改联系电话" />
-                    <button type="button" class="btn" data-action="save-phone" data-member-id="${m.id}">更新电话</button>
                   </div>
                 </div>
               `;
@@ -511,9 +501,9 @@
 
         return `
           <div class="route-banner">
-            <div class="route-banner-main">${route.lineName} · ${route.vehicleNo || '未指定车辆'}</div>
-            <div class="route-banner-sub">执勤司机：${driver.name} · 共 ${stops.length} 个站点</div>
-            <div class="schedule-highlight">📅 日期与发车时间：${formatScheduleDisplay(route)}</div>
+            <div class="route-banner-main">${escapeHtml(route.lineName)} · ${escapeHtml(route.vehicleNo || '未指定车辆')}</div>
+            <div class="route-banner-sub">执勤司机：${escapeHtml(driver.name)} · 共 ${stops.length} 个站点</div>
+            <div class="schedule-highlight">📅 日期与发车时间：${escapeHtml(formatScheduleDisplay(route))}</div>
           </div>
           ${stopsHtml}
         `;
@@ -561,18 +551,12 @@
 
     document.getElementById('taskWorkspace').addEventListener('click', function (e) {
       const toggleBtn = e.target.closest('button[data-action="toggle"]');
-      if (toggleBtn) {
-        toggleStopFlag(
-          toggleBtn.getAttribute('data-route-id'),
-          Number(toggleBtn.getAttribute('data-stop-index')),
-          toggleBtn.getAttribute('data-field')
-        );
-        return;
-      }
-      const phoneBtn = e.target.closest('button[data-action="save-phone"]');
-      if (phoneBtn) {
-        updateMemberPhone(phoneBtn.getAttribute('data-member-id'));
-      }
+      if (!toggleBtn) return;
+      toggleStopFlag(
+        toggleBtn.getAttribute('data-route-id'),
+        Number(toggleBtn.getAttribute('data-stop-index')),
+        toggleBtn.getAttribute('data-field')
+      );
     });
 
     (function initAuthWatcher() {
