@@ -470,11 +470,34 @@
 
     function ensureFirebaseReady() {
       if (auth && db) return true;
-      const cfg = window.FIREBASE_CONFIG || (window.FleetSync && window.FleetSync.FIREBASE_CONFIG);
-      if (!cfg || !cfg.apiKey || !cfg.databaseURL) {
-        document.getElementById('authErrorText').textContent = '未检测到有效的 Firebase 配置（请检查 firebase-config.js）。';
+
+      const fs = window.FleetSync || {};
+      const rawCfg =
+        window.FIREBASE_CONFIG ||
+        fs.FIREBASE_CONFIG ||
+        fs.firebaseConfig ||
+        fs.config ||
+        (firebase.apps.length && firebase.app().options) ||
+        {};
+
+      const cfg = {
+        apiKey: rawCfg.apiKey,
+        authDomain: rawCfg.authDomain || 'fleet-dispatch-tx.firebaseapp.com',
+        databaseURL:
+          rawCfg.databaseURL ||
+          'https://fleet-dispatch-tx-default-rtdb.firebaseio.com',
+        projectId: rawCfg.projectId || 'fleet-dispatch-tx',
+        storageBucket: rawCfg.storageBucket,
+        messagingSenderId: rawCfg.messagingSenderId,
+        appId: rawCfg.appId
+      };
+
+      if (!cfg.apiKey || cfg.apiKey === 'YOUR_FIREBASE_API_KEY') {
+        document.getElementById('authErrorText').textContent =
+          '未检测到有效的 Firebase apiKey，请先在 firebase-config.js 中填入真实配置。';
         return false;
       }
+
       if (!firebase.apps.length) {
         firebase.initializeApp(cfg);
       }
