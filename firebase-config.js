@@ -1,13 +1,13 @@
 // Firebase 配置与兼容辅助文件
 // 请将下方占位字段替换为你在 Firebase 控制台 -> Project settings -> General 中的真实 Web 应用配置
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
+  apiKey: "AIzaSyDmu4gvfwamueoENzCKBITSOiU25gp_X4g",
   authDomain: "fleet-dispatch-tx.firebaseapp.com",
   databaseURL: "https://fleet-dispatch-tx-default-rtdb.firebaseio.com",
   projectId: "fleet-dispatch-tx",
   storageBucket: "fleet-dispatch-tx.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  messagingSenderId: "217502711239",
+  appId: "1:217502711239:web:813029b32a27856a57ede2"
 };
 
 window.FIREBASE_CONFIG = FIREBASE_CONFIG;
