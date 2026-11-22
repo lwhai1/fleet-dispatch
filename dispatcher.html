@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+dispatcher_html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -126,7 +126,7 @@
     }
     .roster-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
       gap: 12px;
       margin-bottom: 14px;
     }
@@ -515,6 +515,27 @@
           <div class="roster-grid">
             <div class="roster-box">
               <div class="roster-head">
+                <span class="roster-title">线路管理（新增 / 移除线路）</span>
+                <span style="font-size:12px;color:var(--muted);" id="routeCountText">共 0 条</span>
+              </div>
+              <form class="roster-add-form" onsubmit="addRoute(event)">
+                <input
+                  type="text"
+                  class="input input-sm"
+                  id="newRouteNameInput"
+                  placeholder="线路名称，例如：4号线"
+                  style="min-width:140px;flex:1;"
+                  required
+                />
+                <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
+                  + 添加线路
+                </button>
+              </form>
+              <div class="roster-chips" id="routeRosterChips"></div>
+            </div>
+
+            <div class="roster-box">
+              <div class="roster-head">
                 <span class="roster-title">可用车辆管理（新增 / 移除车辆）</span>
                 <span style="font-size:12px;color:var(--muted);" id="vehicleCountText">共 0 辆</span>
               </div>
@@ -524,7 +545,7 @@
                   class="input input-sm"
                   id="newVehicleNameInput"
                   placeholder="车辆名称，例如：10号车"
-                  style="min-width:150px;flex:1;"
+                  style="min-width:140px;flex:1;"
                   required
                 />
                 <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
@@ -545,7 +566,7 @@
                   class="input input-sm"
                   id="newDriverNameInput"
                   placeholder="新司机姓名，例如：赵师傅"
-                  style="min-width:150px;flex:1;"
+                  style="min-width:140px;flex:1;"
                   required
                 />
                 <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
@@ -663,25 +684,33 @@
     function normalizeState(raw) {
       const fallback = getDefaultState();
       const hasRawVehicles = raw && Object.prototype.hasOwnProperty.call(raw, 'vehicles');
+      const hasRawRoutes = raw && Object.prototype.hasOwnProperty.call(raw, 'routes');
       const next = Object.assign({}, fallback, raw || {});
       next.vehicles = hasRawVehicles
         ? (Array.isArray(raw.vehicles) ? raw.vehicles.filter(Boolean) : [])
         : DEFAULT_VEHICLES.slice();
       next.drivers = Array.isArray(next.drivers) ? next.drivers : [];
       next.members = Array.isArray(next.members) ? next.members : [];
-      next.routes = Array.isArray(next.routes) && next.routes.length ? next.routes : fallback.routes;
+      next.routes = hasRawRoutes
+        ? (Array.isArray(raw.routes) ? raw.routes.filter(Boolean) : [])
+        : fallback.routes;
 
       const defaultDate = getTodayDateStr();
-      next.routes.forEach(r => {
-        if (!r.dispatchDate) r.dispatchDate = defaultDate;
-        if (!r.departureTime) r.departureTime = '08:00';
+      const batchDateEl = document.getElementById('batchDateInput');
+      const batchTimeEl = document.getElementById('batchTimeInput');
+      const fallbackDate = (batchDateEl && batchDateEl.value) || (next.routes[0] && next.routes[0].dispatchDate) || defaultDate;
+      const fallbackTime = (batchTimeEl && batchTimeEl.value) || (next.routes[0] && next.routes[0].departureTime) || '08:00';
+
+      next.routes.forEach((r, idx) => {
+        if (!r.id) r.id = 'r-' + (idx + 1) + '-' + Date.now();
+        if (!r.lineName) r.lineName = `${idx + 1}号线`;
+        if (!r.dispatchDate) r.dispatchDate = fallbackDate;
+        if (!r.departureTime) r.departureTime = fallbackTime;
         if (!Array.isArray(r.stops)) r.stops = [];
       });
 
-      const dateEl = document.getElementById('batchDateInput');
-      const timeEl = document.getElementById('batchTimeInput');
-      if (dateEl && !dateEl.value) dateEl.value = next.routes[0].dispatchDate || defaultDate;
-      if (timeEl && !timeEl.value) timeEl.value = next.routes[0].departureTime || '08:00';
+      if (batchDateEl && !batchDateEl.value) batchDateEl.value = fallbackDate;
+      if (batchTimeEl && !batchTimeEl.value) batchTimeEl.value = fallbackTime;
       return next;
     }
 
@@ -725,6 +754,78 @@
 
     async function logoutDispatcher() {
       if (auth) await auth.signOut();
+    }
+
+    async function addRoute(e) {
+      e.preventDefault();
+      const input = document.getElementById('newRouteNameInput');
+      if (!input) return;
+      const lineName = input.value.trim();
+      if (!lineName) {
+        showToast('请输入线路名称');
+        return;
+      }
+      state.routes = state.routes || [];
+      if (state.routes.some(r => String(r.lineName || '').trim() === lineName)) {
+        showToast(`${lineName} 已存在`);
+        return;
+      }
+
+      const defaultDate = getTodayDateStr();
+      const batchDateVal = (document.getElementById('batchDateInput') && document.getElementById('batchDateInput').value) || defaultDate;
+      const batchTimeVal = (document.getElementById('batchTimeInput') && document.getElementById('batchTimeInput').value) || '08:00';
+      const availableVehicles = state.vehicles || [];
+      const defaultVehicle = availableVehicles[state.routes.length % availableVehicles.length] || '';
+
+      state.routes.push({
+        id: 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        lineName,
+        vehicleNo: defaultVehicle,
+        assignedDriverId: '',
+        dispatchDate: batchDateVal,
+        departureTime: batchTimeVal,
+        stops: []
+      });
+      input.value = '';
+      await persist(`已添加线路：${lineName}`);
+    }
+
+    async function removeRoute(routeId) {
+      const routes = state.routes || [];
+      const target = routes.find(r => r.id === routeId);
+      if (!target) return;
+      state.routes = routes.filter(r => r.id !== routeId);
+      await persist(`已移除线路：${target.lineName}`);
+    }
+
+    function renderRouteRoster() {
+      if (!state) return;
+      const routes = state.routes || [];
+      const countEl = document.getElementById('routeCountText');
+      const chipsEl = document.getElementById('routeRosterChips');
+
+      if (countEl) {
+        countEl.textContent = `共 ${routes.length} 条`;
+      }
+      if (!chipsEl) return;
+
+      if (routes.length === 0) {
+        chipsEl.innerHTML = `<span style="font-size:12px;color:var(--muted);">暂无线路，请在上方添加</span>`;
+        return;
+      }
+
+      chipsEl.innerHTML = routes.map(r => `
+        <span class="roster-chip">
+          <span>${escapeHtml(r.lineName)}</span>
+          <button
+            type="button"
+            class="roster-chip-remove"
+            title="移除线路"
+            aria-label="移除线路 ${escapeHtml(r.lineName)}"
+            onclick="removeRoute('${escapeHtml(r.id)}')"
+          >×</button>
+        </span>
+      `).join('');
     }
 
     async function addVehicle(e) {
@@ -1022,7 +1123,7 @@
       if (!state) return;
       const container = document.getElementById('memberPoolList');
       const metaEl = document.getElementById('memberSearchMeta');
-      const routeOptions = state.routes.map(r => `<option value="${r.id}">${r.lineName}</option>`).join('');
+      const routeOptions = state.routes.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.lineName)}</option>`).join('');
 
       const allMembers = state.members || [];
       const filteredMembers = !memberSearchKeyword
@@ -1058,7 +1159,7 @@
         const assignedLines = getAssignedRouteNames(m.id);
         let routeBadgeHtml = '';
         if (assignedLines.length > 0) {
-          routeBadgeHtml = `<span class="route-status-badge assigned">已排：${assignedLines.join('、')}</span>`;
+          routeBadgeHtml = `<span class="route-status-badge assigned">已排：${assignedLines.map(escapeHtml).join('、')}</span>`;
         } else if (m.noPickup) {
           routeBadgeHtml = `<span class="route-status-badge self-transport">无需接送（自驾或亲友接送）</span>`;
         } else {
@@ -1066,7 +1167,7 @@
         }
 
         return `
-          <div class="member-card" draggable="true" ondragstart="draggedMemberId='${m.id}'">
+          <div class="member-card" draggable="true" ondragstart="draggedMemberId='${escapeHtml(m.id)}'">
             <div class="member-head">
               <span>${escapeHtml(m.name)}</span>
               <span style="font-size:12px;color:var(--muted);font-weight:400;">${escapeHtml(m.phone || '')}</span>
@@ -1078,14 +1179,14 @@
             <div class="member-detail">${escapeHtml(m.address || '')}</div>
             ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${escapeHtml(m.notes)}</div>` : ''}
             <div class="member-actions">
-              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){handleMemberRouteSelect('${m.id}', this.value); this.value='';}">
+              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){handleMemberRouteSelect('${escapeHtml(m.id)}', this.value); this.value='';}">
                 <option value="">+ 加入线路...</option>
                 ${routeOptions}
                 <option value="${NO_PICKUP_VALUE}">无需接送（自驾或亲友接送）</option>
               </select>
-              ${m.noPickup ? `<button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="setMemberNoPickup('${m.id}', false)">恢复待排</button>` : ''}
-              <button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="editMember('${m.id}')">编辑</button>
-              <button class="btn btn-danger" type="button" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${m.id}')">删除</button>
+              ${m.noPickup ? `<button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="setMemberNoPickup('${escapeHtml(m.id)}', false)">恢复待排</button>` : ''}
+              <button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="editMember('${escapeHtml(m.id)}')">编辑</button>
+              <button class="btn btn-danger" type="button" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${escapeHtml(m.id)}')">删除</button>
             </div>
           </div>
         `;
@@ -1096,14 +1197,22 @@
       const container = document.getElementById('routesGrid');
       const memberMap = new Map(state.members.map(m => [m.id, m]));
       const availableVehicles = state.vehicles || [];
+      const routes = state.routes || [];
 
-      container.innerHTML = state.routes.map(route => {
+      if (routes.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1;padding:24px 12px;text-align:center;color:var(--muted);font-size:13.5px;border:1px dashed #d1d5db;border-radius:12px;">
+          当前暂无线路，请在上方「线路管理」中添加线路。
+        </div>`;
+        return;
+      }
+
+      container.innerHTML = routes.map(route => {
         const vehicleOptions = [`<option value="">未指定车辆</option>`]
           .concat(availableVehicles.map(v => `<option value="${escapeHtml(v)}" ${route.vehicleNo === v ? 'selected' : ''}>${escapeHtml(v)}</option>`))
           .join('');
 
         const driverOptions = [`<option value="">未指定司机</option>`]
-          .concat(state.drivers.map(d => `<option value="${d.id}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`))
+          .concat(state.drivers.map(d => `<option value="${escapeHtml(d.id)}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`))
           .join('');
 
         const stopsHtml = (!route.stops || route.stops.length === 0)
@@ -1119,9 +1228,9 @@
                   <div class="stop-item-top">
                     <span>#${idx + 1} ${escapeHtml(m.name)}</span>
                     <div style="display:flex;gap:4px;">
-                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${route.id}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
-                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${route.id}', ${idx}, 1)" ${idx === route.stops.length - 1 ? 'disabled' : ''}>↓</button>
-                      <button class="btn btn-danger" type="button" style="padding:2px 6px;font-size:11px;" onclick="removeStop('${route.id}', ${idx})">移出</button>
+                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${escapeHtml(route.id)}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
+                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${escapeHtml(route.id)}', ${idx}, 1)" ${idx === route.stops.length - 1 ? 'disabled' : ''}>↓</button>
+                      <button class="btn btn-danger" type="button" style="padding:2px 6px;font-size:11px;" onclick="removeStop('${escapeHtml(route.id)}', ${idx})">移出</button>
                     </div>
                   </div>
                   <div style="font-size:12px;color:#4b5563;margin-top:3px;">${escapeHtml(m.address || '')}</div>
@@ -1139,31 +1248,31 @@
           <div class="route-card"
             ondragover="event.preventDefault(); this.classList.add('drag-over');"
             ondragleave="this.classList.remove('drag-over');"
-            ondrop="event.preventDefault(); this.classList.remove('drag-over'); if(draggedMemberId){ addMemberToRoute(draggedMemberId, '${route.id}'); draggedMemberId = null; }">
+            ondrop="event.preventDefault(); this.classList.remove('drag-over'); if(draggedMemberId){ addMemberToRoute(draggedMemberId, '${escapeHtml(route.id)}'); draggedMemberId = null; }">
             <div class="route-top">
-              <span class="route-name">${route.lineName}</span>
+              <span class="route-name">${escapeHtml(route.lineName)}</span>
               <span style="font-size:12px;color:var(--muted);">共 ${(route.stops || []).length} 站</span>
             </div>
             <div class="schedule-controls">
               <div>
                 <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">日期</label>
-                <input type="date" class="input" style="padding:6px 8px;font-size:12.5px;" value="${route.dispatchDate || ''}" onchange="updateRouteSchedule('${route.id}', 'dispatchDate', this.value)" />
+                <input type="date" class="input" style="padding:6px 8px;font-size:12.5px;" value="${escapeHtml(route.dispatchDate || '')}" onchange="updateRouteSchedule('${escapeHtml(route.id)}', 'dispatchDate', this.value)" />
               </div>
               <div>
                 <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">发车时间</label>
-                <input type="time" class="input" style="padding:6px 8px;font-size:12.5px;" value="${route.departureTime || ''}" onchange="updateRouteSchedule('${route.id}', 'departureTime', this.value)" />
+                <input type="time" class="input" style="padding:6px 8px;font-size:12.5px;" value="${escapeHtml(route.departureTime || '')}" onchange="updateRouteSchedule('${escapeHtml(route.id)}', 'departureTime', this.value)" />
               </div>
             </div>
             <div class="assign-controls">
               <div>
                 <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定车辆</label>
-                <select class="select" onchange="updateRouteVehicle('${route.id}', this.value)">
+                <select class="select" onchange="updateRouteVehicle('${escapeHtml(route.id)}', this.value)">
                   ${vehicleOptions}
                 </select>
               </div>
               <div>
                 <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定司机</label>
-                <select class="select" onchange="updateRouteDriver('${route.id}', this.value)">
+                <select class="select" onchange="updateRouteDriver('${escapeHtml(route.id)}', this.value)">
                   ${driverOptions}
                 </select>
               </div>
@@ -1178,6 +1287,7 @@
       if (!state) return;
       document.getElementById('syncStatusText').textContent =
         `最近更新：${new Date(state.updatedAt || Date.now()).toLocaleString('zh-CN')} · Firebase 云端已认证同步`;
+      renderRouteRoster();
       renderVehicleRoster();
       renderDriverRoster();
       renderMemberPool();
@@ -1238,3 +1348,9 @@
   </script>
 </body>
 </html>
+"""
+
+with open("dispatcher_v4.html", "w", encoding="utf-8") as f:
+    f.write(dispatcher_html.strip() + "\n")
+
+print("Generated dispatcher_v4.html")
