@@ -239,12 +239,19 @@ driver_html = """<!DOCTYPE html>
       border-color: #6ee7b7;
       color: var(--success);
     }
+    .btn-call {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1e40af;
+    }
     .btn-nav {
       background: #f8fafc;
       border-color: #cbd5e1;
       color: #0f172a;
-      margin-top: 10px;
-      width: 100%;
+    }
+    .btn-disabled {
+      opacity: 0.5;
+      pointer-events: none;
     }
     .updated-note {
       margin-top: 8px;
@@ -307,7 +314,7 @@ driver_html = """<!DOCTYPE html>
     <main class="wrap">
       <section class="card">
         <div class="identity-box">
-          <div class="identity-title">当前执勤司机身份（切换司机或本车号后自动匹配对应线路任务）</div>
+          <div class="identity-title">当前执勤司机身份</div>
           <div class="identity-grid">
             <div>
               <label class="identity-label" for="driverSelect">执勤司机</label>
@@ -578,6 +585,11 @@ driver_html = """<!DOCTYPE html>
       showToast('状态已同步至调度员端');
     }
 
+    function buildCallUrl(phone) {
+      const cleaned = String(phone || '').replace(/[^\d+]/g, '');
+      return cleaned ? 'tel:' + cleaned : '';
+    }
+
     function buildMapUrl(address) {
       return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address || '');
     }
@@ -642,6 +654,8 @@ driver_html = """<!DOCTYPE html>
         };
         const allDone = Boolean(stop.pickedUp && stop.mealDelivered);
         const timeText = stop.updatedAt ? `最近确认：${formatTime(stop.updatedAt)}` : '尚未确认';
+        const callUrl = buildCallUrl(m.phone);
+        const navUrl = buildMapUrl(m.address);
 
         return `
           <article class="stop-card ${allDone ? 'done-all' : ''}">
@@ -653,23 +667,32 @@ driver_html = """<!DOCTYPE html>
             ${m.specialNeeds ? `<div class="special-need">特殊需要：${escapeHtml(m.specialNeeds)}</div>` : ''}
 
             <div class="info-line"><strong>地址：</strong>${escapeHtml(m.address || '无地址')}</div>
-            <div class="info-line">
-              <strong>电话：</strong>
-              ${m.phone ? `<a href="tel:${escapeHtml(m.phone)}" style="color:var(--primary);font-weight:700;text-decoration:none;">${escapeHtml(m.phone)}</a>` : '无电话'}
-            </div>
+            <div class="info-line"><strong>电话：</strong>${escapeHtml(m.phone || '无电话')}</div>
             ${m.notes ? `<div class="info-line"><strong>备注：</strong>${escapeHtml(m.notes)}</div>` : ''}
 
-            <a class="btn btn-nav" href="${buildMapUrl(m.address)}" target="_blank" rel="noopener noreferrer">
-              打开 Google Maps 导航至此站
-            </a>
-
             <div class="action-grid">
+              <a
+                class="btn btn-call ${callUrl ? '' : 'btn-disabled'}"
+                href="${callUrl || 'javascript:void(0)'}"
+              >
+                一键呼叫
+              </a>
+
+              <a
+                class="btn btn-nav ${m.address ? '' : 'btn-disabled'}"
+                href="${m.address ? navUrl : 'javascript:void(0)'}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                一键导航
+              </a>
+
               <button
                 type="button"
                 class="btn ${stop.pickedUp ? 'btn-soft-done' : 'btn-primary'}"
                 onclick="toggleStopStatus('${escapeHtml(route.id)}', ${idx}, 'pickedUp')"
               >
-                ${stop.pickedUp ? '✓ 已接送（点击撤销）' : '确认已接送'}
+                ${stop.pickedUp ? '✓ 确认已接送（已确认）' : '确认已接送'}
               </button>
 
               <button
@@ -677,7 +700,7 @@ driver_html = """<!DOCTYPE html>
                 class="btn ${stop.mealDelivered ? 'btn-soft-done' : 'btn-success'}"
                 onclick="toggleStopStatus('${escapeHtml(route.id)}', ${idx}, 'mealDelivered')"
               >
-                ${stop.mealDelivered ? '✓ 餐食已送达（点击撤销）' : '确认餐食已送达'}
+                ${stop.mealDelivered ? '✓ 餐食已送达（已确认）' : '餐食已送达'}
               </button>
             </div>
 
@@ -743,7 +766,7 @@ driver_html = """<!DOCTYPE html>
 </html>
 """
 
-with open("driver_clean_identity.html", "w", encoding="utf-8") as f:
+with open("driver_four_buttons.html", "w", encoding="utf-8") as f:
     f.write(driver_html.strip() + "\n")
 
-print("Generated driver_clean_identity.html")
+print("Generated driver_four_buttons.html")

@@ -1,9 +1,9 @@
-dispatcher_html = """<!DOCTYPE html>
+driver_html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>调度员端 · 线路、车辆与司机指派管理</title>
+  <title>司机端 · 接送与送餐任务</title>
   <style>
     :root {
       --bg: #f3f5f8;
@@ -12,9 +12,13 @@ dispatcher_html = """<!DOCTYPE html>
       --muted: #6b7280;
       --primary: #1d4ed8;
       --primary-soft: #eff6ff;
-      --border: #e5e7eb;
       --success: #047857;
       --success-soft: #ecfdf5;
+      --warn: #b45309;
+      --warn-soft: #fffbeb;
+      --danger: #b91c1c;
+      --danger-soft: #fef2f2;
+      --border: #e5e7eb;
     }
     * { box-sizing: border-box; }
     body {
@@ -22,7 +26,7 @@ dispatcher_html = """<!DOCTYPE html>
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-bottom: 40px;
+      padding-bottom: 48px;
     }
     .auth-overlay {
       min-height: 100vh;
@@ -42,353 +46,260 @@ dispatcher_html = """<!DOCTYPE html>
     }
     .auth-title { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
     .auth-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
-    .topbar {
-      background: #fff;
-      border-bottom: 1px solid var(--border);
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .topbar h1 { margin: 0; font-size: 19px; }
-    .topbar-meta { font-size: 13px; color: var(--muted); }
-    .layout {
-      max-width: 1420px;
-      margin: 18px auto;
-      padding: 0 18px;
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 18px;
-      align-items: start;
-    }
-    .right-sticky-col {
-      position: sticky;
-      top: 18px;
-      max-height: calc(100vh - 36px);
-      overflow-y: auto;
-    }
-    @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      .right-sticky-col {
-        position: static;
-        max-height: none;
-        overflow-y: visible;
-      }
-    }
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .panel-title {
-      margin: 0 0 12px;
-      font-size: 16px;
-      font-weight: 700;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .search-bar-wrap {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .search-meta {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-    .batch-schedule-bar {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-    }
-    .batch-schedule-bar label {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #334155;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .roster-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    .roster-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 10px 12px;
-    }
-    .roster-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .roster-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #1e293b;
-    }
-    .roster-add-form {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .roster-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .roster-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #111827;
-    }
-    .roster-chip-remove {
-      border: none;
-      background: #fee2e2;
-      color: #b91c1c;
-      border-radius: 999px;
-      width: 18px;
-      height: 18px;
-      line-height: 16px;
-      padding: 0;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .form-group { margin-bottom: 10px; }
+    .form-group { margin-bottom: 12px; }
     .form-group label {
       display: block;
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 600;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
       color: #374151;
     }
     .input, .select {
       width: 100%;
-      padding: 9px 11px;
+      padding: 10px 12px;
       border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 13.5px;
+      border-radius: 9px;
+      font-size: 14px;
       background: #fff;
-    }
-    .input-sm {
-      width: auto;
-      padding: 6px 8px;
-      font-size: 12.5px;
-    }
-    .btn {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      border-radius: 8px;
-      padding: 7px 11px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .btn-primary {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #fff;
     }
     .btn-block {
       width: 100%;
       padding: 11px;
       font-size: 15px;
     }
-    .btn-danger {
-      color: #b91c1c;
-      border-color: #fecaca;
-      background: #fef2f2;
-    }
-    .member-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 10px;
-      background: #fafafa;
-      cursor: grab;
-    }
-    .member-card:active { cursor: grabbing; }
-    .member-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 700;
-      font-size: 14.5px;
-    }
-    .route-status-badge {
-      display: inline-block;
-      margin-top: 5px;
-      margin-right: 6px;
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .route-status-badge.assigned {
-      background: var(--primary-soft);
-      color: var(--primary);
-      border: 1px solid #bfdbfe;
-    }
-    .route-status-badge.self-transport {
-      background: var(--success-soft);
-      color: var(--success);
-      border: 1px solid #a7f3d0;
-    }
-    .route-status-badge.unassigned {
-      background: #f3f4f6;
-      color: #6b7280;
-      border: 1px solid #e5e7eb;
-    }
-    .tag {
-      display: inline-block;
-      margin-top: 5px;
-      background: #fef2f2;
-      color: #b91c1c;
-      border: 1px solid #fecaca;
-      font-size: 11.5px;
-      padding: 2px 7px;
-      border-radius: 5px;
-    }
-    .member-detail {
-      font-size: 12.5px;
-      color: #4b5563;
-      margin-top: 4px;
-      line-height: 1.4;
-    }
-    .member-actions {
-      margin-top: 8px;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .routes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 14px;
-    }
-    .route-card {
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      background: #fff;
-      transition: border-color 0.15s ease, background 0.15s ease;
-    }
-    .route-card.drag-over {
-      border-color: var(--primary);
-      background: var(--primary-soft);
-    }
-    .route-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .route-name { font-size: 16px; font-weight: 800; color: var(--primary); }
-    .schedule-controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 8px;
-      background: #f9fafb;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #eef2f6;
-    }
-    .assign-controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .stop-item {
-      border: 1px solid #e5e7eb;
-      background: #f9fafb;
-      border-radius: 8px;
-      padding: 8px 10px;
-      margin-bottom: 8px;
-    }
-    .stop-item-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      font-weight: 700;
-      font-size: 13.5px;
-    }
-    .status-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
-    }
-    .status-pill {
-      font-size: 11.5px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: #e5e7eb;
-      color: #374151;
-      display: inline-block;
-    }
-    .status-pill.ok {
-      background: var(--success-soft);
-      color: var(--success);
-      font-weight: 600;
-    }
     .error-text {
-      color: #b91c1c;
+      color: var(--danger);
       font-size: 13px;
       margin-top: 8px;
       min-height: 18px;
     }
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .topbar-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .topbar h1 { margin: 0; font-size: 18px; }
+    .sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    .wrap {
+      max-width: 780px;
+      margin: 16px auto;
+      padding: 0 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .identity-box {
+      background: var(--primary-soft);
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .identity-title {
+      font-size: 12.5px;
+      color: #1e40af;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .identity-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 600px) {
+      .identity-grid { grid-template-columns: 1fr; }
+    }
+    .identity-label {
+      display: block;
+      font-size: 12px;
+      color: #374151;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .route-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .route-main { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .schedule-badge {
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1e3a8a;
+      background: #dbeafe;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+    .temp-alert {
+      margin-top: 8px;
+      background: var(--warn-soft);
+      border: 1px solid #fcd34d;
+      color: var(--warn);
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .stop-card {
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .stop-card.done-all {
+      border-color: #a7f3d0;
+      background: #f8fffe;
+    }
+    .stop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .stop-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stop-name { font-size: 17px; font-weight: 800; }
+    .seq-badge {
+      background: #111827;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+    .special-need {
+      display: inline-block;
+      margin-top: 7px;
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+    .info-line {
+      margin-top: 8px;
+      font-size: 13.5px;
+      color: #374151;
+      line-height: 1.45;
+    }
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-edit {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #1e293b;
+    }
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .btn-success {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+    .btn-soft-done {
+      background: var(--success-soft);
+      border-color: #6ee7b7;
+      color: var(--success);
+    }
+    .btn-call {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1e40af;
+    }
+    .btn-nav {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+    .btn-disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .updated-note {
+      margin-top: 8px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .edit-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+    }
+    .edit-box-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
     .toast {
       position: fixed;
       bottom: 18px;
-      right: 18px;
+      left: 50%;
+      transform: translateX(-50%);
       background: #111827;
       color: #fff;
       padding: 10px 16px;
       border-radius: 10px;
       font-size: 13px;
-      z-index: 50;
+      z-index: 60;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
@@ -399,18 +310,18 @@ dispatcher_html = """<!DOCTYPE html>
 <body>
   <div class="auth-overlay" id="authScreen">
     <div class="auth-card">
-      <h2 class="auth-title">调度员端登录</h2>
-      <p class="auth-sub">请使用 Firebase 后台已创建的邮箱与密码登录，未授权账号无法访问排班与长者信息。</p>
-      <form id="dispatcherLoginForm">
+      <h2 class="auth-title">司机端登录</h2>
+      <p class="auth-sub">请使用 Firebase 后台已创建的邮箱与密码登录，未授权账号无法查看任务与长者信息。</p>
+      <form id="driverLoginForm">
         <div class="form-group">
           <label for="loginEmail">登录邮箱</label>
-          <input class="input" type="email" id="loginEmail" required autocomplete="username" placeholder="dispatcher@example.com" />
+          <input class="input" type="email" id="loginEmail" required autocomplete="username" placeholder="driver@example.com" />
         </div>
         <div class="form-group">
           <label for="loginPassword">登录密码</label>
           <input class="input" type="password" id="loginPassword" required autocomplete="current-password" placeholder="请输入密码" />
         </div>
-        <button class="btn btn-primary btn-block" type="submit" id="loginSubmitBtn">登录调度员端</button>
+        <button class="btn btn-primary btn-block" type="submit" id="loginSubmitBtn">登录司机端</button>
         <div class="error-text" id="authErrorText"></div>
       </form>
     </div>
@@ -418,169 +329,40 @@ dispatcher_html = """<!DOCTYPE html>
 
   <div id="appShell" style="display:none;">
     <header class="topbar">
-      <div>
-        <h1>调度员端 · 线路、车辆与司机指派管理</h1>
-        <div class="topbar-meta" id="syncStatusText">数据已就绪</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span id="currentUserBadge" style="font-size:12.5px;color:#374151;font-weight:600;"></span>
-        <a class="btn" href="./driver.html" target="_blank" rel="noopener noreferrer">打开司机端页面</a>
-        <button class="btn btn-primary" type="button" onclick="refreshFromStore()">刷新状态</button>
-        <button class="btn" type="button" onclick="logoutDispatcher()">退出登录</button>
+      <div class="topbar-inner">
+        <div>
+          <h1>司机端 · 今日接送与送餐任务</h1>
+          <div class="sub" id="syncInfo">Firebase 云端已认证同步</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span id="currentUserBadge" style="font-size:12px;color:#374151;font-weight:600;"></span>
+          <button class="btn btn-primary" style="padding:8px 12px;font-size:13px;" type="button" onclick="refreshFromStore()">刷新任务</button>
+          <button class="btn" style="padding:8px 12px;font-size:13px;" type="button" onclick="logoutDriver()">退出登录</button>
+        </div>
       </div>
     </header>
 
-    <div class="layout">
-      <div>
-        <section class="panel">
-          <h2 class="panel-title">新建 / 编辑长者（会员）卡片</h2>
-          <form id="memberForm" onsubmit="saveMember(event)">
-            <input type="hidden" id="editingMemberId" />
-            <div class="form-group">
-              <label for="mName">姓名 *</label>
-              <input class="input" id="mName" required placeholder="例如：张建华" />
+    <main class="wrap">
+      <section class="card">
+        <div class="identity-box">
+          <div class="identity-title">当前执勤司机身份</div>
+          <div class="identity-grid">
+            <div>
+              <label class="identity-label" for="driverSelect">执勤司机</label>
+              <select class="select" id="driverSelect" onchange="onDriverChange(this.value)"></select>
             </div>
-            <div class="form-group">
-              <label for="mPhone">联系电话 *</label>
-              <input class="input" id="mPhone" required placeholder="例如：713-555-0199" />
-            </div>
-            <div class="form-group">
-              <label for="mAddress">接送 / 送餐地址 *</label>
-              <input class="input" id="mAddress" required placeholder="例如：6501 Westline Dr, Houston, TX 77036" />
-            </div>
-            <div class="form-group">
-              <label for="mSpecial">特殊需要（如轮椅、需送上门）</label>
-              <input class="input" id="mSpecial" placeholder="例如：轮椅、需送上门" />
-            </div>
-            <div class="form-group">
-              <label for="mNotes">备注说明</label>
-              <input class="input" id="mNotes" placeholder="例如：先电话联系家属" />
-            </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn btn-primary" type="submit" style="flex:1;">保存卡片</button>
-              <button class="btn" type="button" onclick="resetMemberForm()">清空</button>
-            </div>
-          </form>
-        </section>
-
-        <section class="panel">
-          <h2 class="panel-title">
-            <span>人员卡片池</span>
-            <span style="font-size:12px;color:var(--muted);font-weight:400;">可搜索或拖拽排班</span>
-          </h2>
-          <div class="search-bar-wrap">
-            <input
-              type="search"
-              class="input"
-              id="memberSearchInput"
-              placeholder="搜索姓名、电话、地址、备注或线路..."
-              oninput="handleMemberSearch(this.value)"
-            />
-            <button
-              class="btn"
-              type="button"
-              id="clearSearchBtn"
-              style="display:none;white-space:nowrap;"
-              onclick="clearMemberSearch()"
-            >
-              清空
-            </button>
-          </div>
-          <div class="search-meta" id="memberSearchMeta"></div>
-          <div id="memberPoolList"></div>
-        </section>
-      </div>
-
-      <div class="right-sticky-col">
-        <section class="panel" style="margin-bottom:0;">
-          <h2 class="panel-title">
-            <span>线路排班 · 日期发车时间、临时指定车辆与指定司机</span>
-            <span style="font-size:12px;color:var(--muted);font-weight:400;">司机确认状态后此处自动同步更新</span>
-          </h2>
-
-          <div class="batch-schedule-bar">
-            <label>
-              统一日期：
-              <input type="date" class="input input-sm" id="batchDateInput" />
-            </label>
-            <label>
-              统一发车时间：
-              <input type="time" class="input input-sm" id="batchTimeInput" value="08:00" />
-            </label>
-            <button class="btn btn-primary" type="button" style="padding:6px 10px;font-size:12.5px;" onclick="applyBatchSchedule()">
-              应用到所有线路
-            </button>
-          </div>
-
-          <div class="roster-grid">
-            <div class="roster-box">
-              <div class="roster-head">
-                <span class="roster-title">线路管理（新增 / 移除线路）</span>
-                <span style="font-size:12px;color:var(--muted);" id="routeCountText">共 0 条</span>
-              </div>
-              <form class="roster-add-form" onsubmit="addRoute(event)">
-                <input
-                  type="text"
-                  class="input input-sm"
-                  id="newRouteNameInput"
-                  placeholder="线路名称，例如：4号线"
-                  style="min-width:140px;flex:1;"
-                  required
-                />
-                <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
-                  + 添加线路
-                </button>
-              </form>
-              <div class="roster-chips" id="routeRosterChips"></div>
-            </div>
-
-            <div class="roster-box">
-              <div class="roster-head">
-                <span class="roster-title">可用车辆管理（新增 / 移除车辆）</span>
-                <span style="font-size:12px;color:var(--muted);" id="vehicleCountText">共 0 辆</span>
-              </div>
-              <form class="roster-add-form" onsubmit="addVehicle(event)">
-                <input
-                  type="text"
-                  class="input input-sm"
-                  id="newVehicleNameInput"
-                  placeholder="车辆名称，例如：10号车"
-                  style="min-width:140px;flex:1;"
-                  required
-                />
-                <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
-                  + 添加车辆
-                </button>
-              </form>
-              <div class="roster-chips" id="vehicleRosterChips"></div>
-            </div>
-
-            <div class="roster-box">
-              <div class="roster-head">
-                <span class="roster-title">在岗司机管理（新增 / 移除离职司机）</span>
-                <span style="font-size:12px;color:var(--muted);" id="driverCountText">共 0 位</span>
-              </div>
-              <form class="roster-add-form" onsubmit="addDriver(event)">
-                <input
-                  type="text"
-                  class="input input-sm"
-                  id="newDriverNameInput"
-                  placeholder="新司机姓名，例如：赵师傅"
-                  style="min-width:140px;flex:1;"
-                  required
-                />
-                <button class="btn btn-primary" type="submit" style="padding:6px 12px;font-size:12.5px;">
-                  + 添加司机
-                </button>
-              </form>
-              <div class="roster-chips" id="driverRosterChips"></div>
+            <div>
+              <label class="identity-label" for="vehicleSelect">当前驾驶车辆（可临时换车）</label>
+              <select class="select" id="vehicleSelect" onchange="onVehicleChange(this.value)"></select>
             </div>
           </div>
+        </div>
 
-          <div class="routes-grid" id="routesGrid"></div>
-        </section>
-      </div>
-    </div>
+        <div id="routeSummary"></div>
+      </section>
+
+      <section id="stopsContainer"></section>
+    </main>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -590,17 +372,23 @@ dispatcher_html = """<!DOCTYPE html>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="./firebase-config.js"></script>
   <script>
-    const DEFAULT_VEHICLES = ['1号车', '2号车', '3号车', '4号车', '5号车', '6号车', '7号车', '8号车', '9号车'];
-    const NO_PICKUP_VALUE = '__NO_PICKUP__';
     const DB_ROOT_PATH = 'fleetDispatchState';
+    const DRIVER_PREF_PREFIX = 'fleet_dispatch_driver_pref_v1_';
 
     let auth = null;
     let db = null;
     let dbRef = null;
     let state = null;
-    let draggedMemberId = null;
+    let selectedDriverId = '';
+    let selectedVehicleNo = '';
+    let editingMemberId = null;
     let isSubscribed = false;
-    let memberSearchKeyword = '';
+
+    function stripParentheses(name) {
+      return String(name || '')
+        .replace(/\s*[（(][^）)]*[）)]\s*/g, '')
+        .trim();
+    }
 
     function escapeHtml(str) {
       return String(str || '')
@@ -614,7 +402,7 @@ dispatcher_html = """<!DOCTYPE html>
       const base = (window.FleetSync && window.FleetSync.DEFAULT_STATE)
         ? JSON.parse(JSON.stringify(window.FleetSync.DEFAULT_STATE))
         : {
-            vehicles: DEFAULT_VEHICLES.slice(),
+            vehicles: ['1号车', '2号车', '3号车', '4号车', '5号车', '6号车', '7号车', '8号车', '9号车'],
             drivers: [
               { id: 'd1', name: '陈师傅', code: 'CHEN01' },
               { id: 'd2', name: '李师傅', code: 'LI02' },
@@ -627,9 +415,6 @@ dispatcher_html = """<!DOCTYPE html>
               { id: 'r3', lineName: '3号线', vehicleNo: '3号车', assignedDriverId: 'd3', dispatchDate: '', departureTime: '08:00', stops: [] }
             ]
           };
-      if (!Array.isArray(base.vehicles)) {
-        base.vehicles = DEFAULT_VEHICLES.slice();
-      }
       base.updatedAt = base.updatedAt || new Date().toISOString();
       return base;
     }
@@ -673,44 +458,19 @@ dispatcher_html = """<!DOCTYPE html>
       return true;
     }
 
-    function getTodayDateStr() {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
     function normalizeState(raw) {
       const fallback = getDefaultState();
       const hasRawVehicles = raw && Object.prototype.hasOwnProperty.call(raw, 'vehicles');
-      const hasRawRoutes = raw && Object.prototype.hasOwnProperty.call(raw, 'routes');
       const next = Object.assign({}, fallback, raw || {});
       next.vehicles = hasRawVehicles
         ? (Array.isArray(raw.vehicles) ? raw.vehicles.filter(Boolean) : [])
-        : DEFAULT_VEHICLES.slice();
+        : fallback.vehicles;
       next.drivers = Array.isArray(next.drivers) ? next.drivers : [];
       next.members = Array.isArray(next.members) ? next.members : [];
-      next.routes = hasRawRoutes
-        ? (Array.isArray(raw.routes) ? raw.routes.filter(Boolean) : [])
-        : fallback.routes;
-
-      const defaultDate = getTodayDateStr();
-      const batchDateEl = document.getElementById('batchDateInput');
-      const batchTimeEl = document.getElementById('batchTimeInput');
-      const fallbackDate = (batchDateEl && batchDateEl.value) || (next.routes[0] && next.routes[0].dispatchDate) || defaultDate;
-      const fallbackTime = (batchTimeEl && batchTimeEl.value) || (next.routes[0] && next.routes[0].departureTime) || '08:00';
-
-      next.routes.forEach((r, idx) => {
-        if (!r.id) r.id = 'r-' + (idx + 1) + '-' + Date.now();
-        if (!r.lineName) r.lineName = `${idx + 1}号线`;
-        if (!r.dispatchDate) r.dispatchDate = fallbackDate;
-        if (!r.departureTime) r.departureTime = fallbackTime;
+      next.routes = Array.isArray(next.routes) && next.routes.length ? next.routes : fallback.routes;
+      next.routes.forEach(r => {
         if (!Array.isArray(r.stops)) r.stops = [];
       });
-
-      if (batchDateEl && !batchDateEl.value) batchDateEl.value = fallbackDate;
-      if (batchTimeEl && !batchTimeEl.value) batchTimeEl.value = fallbackTime;
       return next;
     }
 
@@ -718,13 +478,166 @@ dispatcher_html = """<!DOCTYPE html>
       const el = document.getElementById('toast');
       el.textContent = msg;
       el.classList.add('show');
-      clearTimeout(window.__dToast);
-      window.__dToast = setTimeout(() => el.classList.remove('show'), 2200);
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     }
 
-    function formatShortTime(iso) {
+    function formatTime(iso) {
       if (!iso) return '';
-      return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
+      const d = new Date(iso);
+      return d.toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    function loadDriverPref(uid) {
+      try {
+        const raw = localStorage.getItem(DRIVER_PREF_PREFIX + (uid || 'default'));
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveDriverPref(uid) {
+      try {
+        localStorage.setItem(
+          DRIVER_PREF_PREFIX + (uid || 'default'),
+          JSON.stringify({
+            driverId: selectedDriverId,
+            vehicleNo: selectedVehicleNo
+          })
+        );
+      } catch (e) {}
+    }
+
+    function syncIdentitySelectors() {
+      const uid = auth && auth.currentUser ? auth.currentUser.uid : 'default';
+      const pref = loadDriverPref(uid);
+
+      if (!selectedDriverId) {
+        if (pref && pref.driverId && state.drivers.some(d => d.id === pref.driverId)) {
+          selectedDriverId = pref.driverId;
+        } else {
+          selectedDriverId = (state.drivers[0] && state.drivers[0].id) || '';
+        }
+      } else if (selectedDriverId && !state.drivers.some(d => d.id === selectedDriverId)) {
+        selectedDriverId = (state.drivers[0] && state.drivers[0].id) || '';
+      }
+
+      const driverSelect = document.getElementById('driverSelect');
+      driverSelect.innerHTML = state.drivers.length
+        ? state.drivers.map(d => {
+            const cleanName = stripParentheses(d.name) || d.name;
+            return `<option value="${escapeHtml(d.id)}" ${d.id === selectedDriverId ? 'selected' : ''}>${escapeHtml(cleanName)}</option>`;
+          }).join('')
+        : `<option value="">暂无司机</option>`;
+
+      const matchedRoute = findActiveRoute();
+      if (!selectedVehicleNo) {
+        if (pref && pref.vehicleNo && state.vehicles.includes(pref.vehicleNo)) {
+          selectedVehicleNo = pref.vehicleNo;
+        } else {
+          selectedVehicleNo = (matchedRoute && matchedRoute.vehicleNo) || state.vehicles[0] || '';
+        }
+      } else if (selectedVehicleNo && !state.vehicles.includes(selectedVehicleNo)) {
+        selectedVehicleNo = (matchedRoute && matchedRoute.vehicleNo) || state.vehicles[0] || '';
+      }
+
+      const vehicleSelect = document.getElementById('vehicleSelect');
+      vehicleSelect.innerHTML = state.vehicles.length
+        ? state.vehicles.map(v => `<option value="${escapeHtml(v)}" ${v === selectedVehicleNo ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')
+        : `<option value="">暂无车辆</option>`;
+    }
+
+    function findActiveRoute() {
+      if (!state || !Array.isArray(state.routes)) return null;
+      const byDriver = state.routes.find(r => r.assignedDriverId === selectedDriverId);
+      if (byDriver) return byDriver;
+      const byVehicle = state.routes.find(r => r.vehicleNo === selectedVehicleNo);
+      if (byVehicle) return byVehicle;
+      return state.routes[0] || null;
+    }
+
+    function onDriverChange(driverId) {
+      selectedDriverId = driverId;
+      editingMemberId = null;
+      const matchedRoute = state.routes.find(r => r.assignedDriverId === selectedDriverId);
+      if (matchedRoute && matchedRoute.vehicleNo) {
+        selectedVehicleNo = matchedRoute.vehicleNo;
+      }
+      const uid = auth && auth.currentUser ? auth.currentUser.uid : 'default';
+      saveDriverPref(uid);
+      renderAll();
+    }
+
+    async function onVehicleChange(vehicleNo) {
+      selectedVehicleNo = vehicleNo;
+      const uid = auth && auth.currentUser ? auth.currentUser.uid : 'default';
+      saveDriverPref(uid);
+
+      const route = findActiveRoute();
+      if (route) {
+        route.vehicleNo = vehicleNo;
+        state.updatedAt = new Date().toISOString();
+        await dbRef.set(state);
+        showToast(`已将 ${route.lineName} 当前车辆更新为 ${vehicleNo}`);
+      }
+      renderAll();
+    }
+
+    function openMemberEdit(memberId) {
+      editingMemberId = editingMemberId === memberId ? null : memberId;
+      renderAll();
+    }
+
+    function cancelMemberEdit() {
+      editingMemberId = null;
+      renderAll();
+    }
+
+    async function saveMemberEdit(e, memberId) {
+      e.preventDefault();
+      if (!state) return;
+
+      const phoneInput = document.getElementById('editPhone_' + memberId);
+      const addressInput = document.getElementById('editAddress_' + memberId);
+      const specialInput = document.getElementById('editSpecial_' + memberId);
+      const notesInput = document.getElementById('editNotes_' + memberId);
+
+      const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+      const addressVal = addressInput ? addressInput.value.trim() : '';
+      const specialVal = specialInput ? specialInput.value.trim() : '';
+      const notesVal = notesInput ? notesInput.value.trim() : '';
+
+      if (!addressVal) {
+        showToast('地址不能为空');
+        return;
+      }
+
+      const idx = state.members.findIndex(m => m.id === memberId);
+      if (idx !== -1) {
+        state.members[idx] = Object.assign({}, state.members[idx], {
+          phone: phoneVal,
+          address: addressVal,
+          specialNeeds: specialVal,
+          notes: notesVal
+        });
+      } else {
+        state.members.push({
+          id: memberId,
+          name: '未知长者',
+          phone: phoneVal,
+          address: addressVal,
+          specialNeeds: specialVal,
+          notes: notesVal,
+          noPickup: false
+        });
+      }
+
+      state.updatedAt = new Date().toISOString();
+      editingMemberId = null;
+      await dbRef.set(state);
+      renderAll();
+      showToast('长者信息已更新并同步至调度员端');
     }
 
     async function loadCloudState() {
@@ -738,563 +651,195 @@ dispatcher_html = """<!DOCTYPE html>
       return normalizeState(val);
     }
 
-    async function persist(msg) {
-      state = normalizeState(state);
-      state.updatedAt = new Date().toISOString();
-      await dbRef.set(state);
-      renderAll();
-      if (msg) showToast(msg);
-    }
-
     async function refreshFromStore() {
       state = await loadCloudState();
       renderAll();
-      showToast('已同步最新状态');
+      showToast('已同步最新排班');
     }
 
-    async function logoutDispatcher() {
+    async function logoutDriver() {
       if (auth) await auth.signOut();
     }
 
-    async function addRoute(e) {
-      e.preventDefault();
-      const input = document.getElementById('newRouteNameInput');
-      if (!input) return;
-      const lineName = input.value.trim();
-      if (!lineName) {
-        showToast('请输入线路名称');
-        return;
-      }
-      state.routes = state.routes || [];
-      if (state.routes.some(r => String(r.lineName || '').trim() === lineName)) {
-        showToast(`${lineName} 已存在`);
-        return;
-      }
-
-      const defaultDate = getTodayDateStr();
-      const batchDateVal = (document.getElementById('batchDateInput') && document.getElementById('batchDateInput').value) || defaultDate;
-      const batchTimeVal = (document.getElementById('batchTimeInput') && document.getElementById('batchTimeInput').value) || '08:00';
-      const availableVehicles = state.vehicles || [];
-      const defaultVehicle = availableVehicles[state.routes.length % availableVehicles.length] || '';
-
-      state.routes.push({
-        id: 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-        lineName,
-        vehicleNo: defaultVehicle,
-        assignedDriverId: '',
-        dispatchDate: batchDateVal,
-        departureTime: batchTimeVal,
-        stops: []
-      });
-      input.value = '';
-      await persist(`已添加线路：${lineName}`);
-    }
-
-    async function removeRoute(routeId) {
-      const routes = state.routes || [];
-      const target = routes.find(r => r.id === routeId);
-      if (!target) return;
-      state.routes = routes.filter(r => r.id !== routeId);
-      await persist(`已移除线路：${target.lineName}`);
-    }
-
-    function renderRouteRoster() {
-      if (!state) return;
-      const routes = state.routes || [];
-      const countEl = document.getElementById('routeCountText');
-      const chipsEl = document.getElementById('routeRosterChips');
-
-      if (countEl) {
-        countEl.textContent = `共 ${routes.length} 条`;
-      }
-      if (!chipsEl) return;
-
-      if (routes.length === 0) {
-        chipsEl.innerHTML = `<span style="font-size:12px;color:var(--muted);">暂无线路，请在上方添加</span>`;
-        return;
-      }
-
-      chipsEl.innerHTML = routes.map(r => `
-        <span class="roster-chip">
-          <span>${escapeHtml(r.lineName)}</span>
-          <button
-            type="button"
-            class="roster-chip-remove"
-            title="移除线路"
-            aria-label="移除线路 ${escapeHtml(r.lineName)}"
-            onclick="removeRoute('${escapeHtml(r.id)}')"
-          >×</button>
-        </span>
-      `).join('');
-    }
-
-    async function addVehicle(e) {
-      e.preventDefault();
-      const input = document.getElementById('newVehicleNameInput');
-      if (!input) return;
-      const vehicleName = input.value.trim();
-      if (!vehicleName) {
-        showToast('请输入车辆名称');
-        return;
-      }
-      state.vehicles = state.vehicles || [];
-      if (state.vehicles.includes(vehicleName)) {
-        showToast(`${vehicleName} 已存在`);
-        return;
-      }
-      state.vehicles.push(vehicleName);
-      input.value = '';
-      await persist(`已添加车辆：${vehicleName}`);
-    }
-
-    async function removeVehicle(index) {
-      const vehicles = state.vehicles || [];
-      if (index < 0 || index >= vehicles.length) return;
-      const targetName = vehicles[index];
-      state.vehicles = vehicles.filter((_, idx) => idx !== index);
-      (state.routes || []).forEach(r => {
-        if (r.vehicleNo === targetName) {
-          r.vehicleNo = '';
-        }
-      });
-      await persist(`已移除车辆：${targetName}`);
-    }
-
-    function renderVehicleRoster() {
-      if (!state) return;
-      const vehicles = state.vehicles || [];
-      const countEl = document.getElementById('vehicleCountText');
-      const chipsEl = document.getElementById('vehicleRosterChips');
-
-      if (countEl) {
-        countEl.textContent = `共 ${vehicles.length} 辆`;
-      }
-      if (!chipsEl) return;
-
-      if (vehicles.length === 0) {
-        chipsEl.innerHTML = `<span style="font-size:12px;color:var(--muted);">暂无可用车辆，请在上方添加</span>`;
-        return;
-      }
-
-      chipsEl.innerHTML = vehicles.map((v, idx) => `
-        <span class="roster-chip">
-          <span>${escapeHtml(v)}</span>
-          <button
-            type="button"
-            class="roster-chip-remove"
-            title="移除车辆"
-            aria-label="移除车辆 ${escapeHtml(v)}"
-            onclick="removeVehicle(${idx})"
-          >×</button>
-        </span>
-      `).join('');
-    }
-
-    async function addDriver(e) {
-      e.preventDefault();
-      const input = document.getElementById('newDriverNameInput');
-      if (!input) return;
-      const name = input.value.trim();
-      if (!name) {
-        showToast('请输入司机姓名');
-        return;
-      }
-      const newDriver = {
-        id: 'd-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-        name,
-        code: ''
-      };
-      state.drivers = state.drivers || [];
-      state.drivers.push(newDriver);
-      input.value = '';
-      await persist(`已添加司机：${name}`);
-    }
-
-    async function removeDriver(driverId) {
-      const target = (state.drivers || []).find(d => d.id === driverId);
-      if (!target) return;
-      state.drivers = (state.drivers || []).filter(d => d.id !== driverId);
-      (state.routes || []).forEach(r => {
-        if (r.assignedDriverId === driverId) {
-          r.assignedDriverId = '';
-        }
-      });
-      await persist(`已移除司机：${target.name}`);
-    }
-
-    function renderDriverRoster() {
-      if (!state) return;
-      const drivers = state.drivers || [];
-      const countEl = document.getElementById('driverCountText');
-      const chipsEl = document.getElementById('driverRosterChips');
-
-      if (countEl) {
-        countEl.textContent = `共 ${drivers.length} 位`;
-      }
-      if (!chipsEl) return;
-
-      if (drivers.length === 0) {
-        chipsEl.innerHTML = `<span style="font-size:12px;color:var(--muted);">暂无在岗司机，请在上方添加</span>`;
-        return;
-      }
-
-      chipsEl.innerHTML = drivers.map(d => `
-        <span class="roster-chip">
-          <span>${escapeHtml(d.name)}</span>
-          <button
-            type="button"
-            class="roster-chip-remove"
-            title="移除司机"
-            aria-label="移除司机 ${escapeHtml(d.name)}"
-            onclick="removeDriver('${escapeHtml(d.id)}')"
-          >×</button>
-        </span>
-      `).join('');
-    }
-
-    async function updateRouteSchedule(routeId, field, value) {
+    async function toggleStopStatus(routeId, stopIndex, field) {
       const route = state.routes.find(r => r.id === routeId);
-      if (!route) return;
-      route[field] = value;
-      await persist(`${route.lineName} 已更新为 ${route.dispatchDate || ''} ${route.departureTime || ''}`.trim());
+      if (!route || !route.stops || !route.stops[stopIndex]) return;
+      const stop = route.stops[stopIndex];
+      stop[field] = !stop[field];
+      stop.updatedAt = new Date().toISOString();
+      state.updatedAt = new Date().toISOString();
+
+      await dbRef.set(state);
+      renderAll();
+      showToast('状态已同步至调度员端');
     }
 
-    async function applyBatchSchedule() {
-      const dateVal = document.getElementById('batchDateInput').value;
-      const timeVal = document.getElementById('batchTimeInput').value;
-      if (!dateVal && !timeVal) {
-        showToast('请先选择日期或发车时间');
-        return;
-      }
-      state.routes.forEach(r => {
-        if (dateVal) r.dispatchDate = dateVal;
-        if (timeVal) r.departureTime = timeVal;
-      });
-      await persist(`已将所有线路设为 ${dateVal || ''} ${timeVal || ''}`.trim());
+    function buildCallUrl(phone) {
+      const cleaned = String(phone || '').replace(/[^\d+]/g, '');
+      return cleaned ? 'tel:' + cleaned : '';
     }
 
-    function resetMemberForm() {
-      document.getElementById('editingMemberId').value = '';
-      document.getElementById('memberForm').reset();
-    }
-
-    function editMember(memberId) {
-      const m = state.members.find(item => item.id === memberId);
-      if (!m) return;
-      document.getElementById('editingMemberId').value = m.id;
-      document.getElementById('mName').value = m.name || '';
-      document.getElementById('mPhone').value = m.phone || '';
-      document.getElementById('mAddress').value = m.address || '';
-      document.getElementById('mSpecial').value = m.specialNeeds || '';
-      document.getElementById('mNotes').value = m.notes || '';
-    }
-
-    async function saveMember(e) {
-      e.preventDefault();
-      const editId = document.getElementById('editingMemberId').value;
-      const existing = editId ? state.members.find(m => m.id === editId) : null;
-      const payload = {
-        id: editId || ('m-' + Date.now()),
-        name: document.getElementById('mName').value.trim(),
-        phone: document.getElementById('mPhone').value.trim(),
-        address: document.getElementById('mAddress').value.trim(),
-        specialNeeds: document.getElementById('mSpecial').value.trim(),
-        notes: document.getElementById('mNotes').value.trim(),
-        noPickup: existing ? Boolean(existing.noPickup) : false
-      };
-      if (editId) {
-        const idx = state.members.findIndex(m => m.id === editId);
-        if (idx !== -1) state.members[idx] = payload;
-      } else {
-        state.members.unshift(payload);
-      }
-      resetMemberForm();
-      await persist(editId ? '已更新卡片信息' : '已新增卡片信息');
-    }
-
-    async function deleteMember(memberId) {
-      state.members = state.members.filter(m => m.id !== memberId);
-      state.routes.forEach(r => {
-        r.stops = (r.stops || []).filter(s => s.memberId !== memberId);
-      });
-      await persist('已删除卡片');
-    }
-
-    async function setMemberNoPickup(memberId, enabled) {
-      const member = state.members.find(m => m.id === memberId);
-      if (!member) return;
-      member.noPickup = enabled;
-      if (enabled) {
-        state.routes.forEach(r => {
-          r.stops = (r.stops || []).filter(s => s.memberId !== memberId);
-        });
-      }
-      await persist(enabled ? `已标记 ${member.name} 为无需接送（自驾或亲友接送）` : `已取消 ${member.name} 的无需接送标记`);
-    }
-
-    async function handleMemberRouteSelect(memberId, selectedValue) {
-      if (!selectedValue) return;
-      if (selectedValue === NO_PICKUP_VALUE) {
-        await setMemberNoPickup(memberId, true);
-        return;
-      }
-      await addMemberToRoute(memberId, selectedValue);
-    }
-
-    async function addMemberToRoute(memberId, routeId) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route) return;
-      const member = state.members.find(m => m.id === memberId);
-      if (member && member.noPickup) {
-        member.noPickup = false;
-      }
-      route.stops = route.stops || [];
-      route.stops.push({
-        memberId,
-        pickedUp: false,
-        mealDelivered: false,
-        updatedAt: ''
-      });
-      await persist(`已加入 ${route.lineName}`);
-    }
-
-    async function moveStop(routeId, index, delta) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route || !route.stops) return;
-      const target = index + delta;
-      if (target < 0 || target >= route.stops.length) return;
-      const temp = route.stops[index];
-      route.stops[index] = route.stops[target];
-      route.stops[target] = temp;
-      await persist('已调整接送顺序');
-    }
-
-    async function removeStop(routeId, index) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route || !route.stops) return;
-      route.stops.splice(index, 1);
-      await persist('已从线路移除该站点');
-    }
-
-    async function updateRouteVehicle(routeId, vehicleNo) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route) return;
-      route.vehicleNo = vehicleNo;
-      await persist(`${route.lineName} 临时指定为 ${vehicleNo || '未指定车辆'}`);
-    }
-
-    async function updateRouteDriver(routeId, driverId) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route) return;
-      route.assignedDriverId = driverId;
-      const drv = state.drivers.find(d => d.id === driverId);
-      await persist(`${route.lineName} 已指定司机：${drv ? drv.name : '未指定司机'}`);
-    }
-
-    function getAssignedRouteNames(memberId) {
-      const names = [];
-      (state.routes || []).forEach(r => {
-        if ((r.stops || []).some(s => s.memberId === memberId)) {
-          names.push(r.lineName);
-        }
-      });
-      return names;
-    }
-
-    function handleMemberSearch(value) {
-      memberSearchKeyword = (value || '').trim().toLowerCase();
-      const clearBtn = document.getElementById('clearSearchBtn');
-      if (clearBtn) {
-        clearBtn.style.display = memberSearchKeyword ? 'inline-block' : 'none';
-      }
-      renderMemberPool();
-    }
-
-    function clearMemberSearch() {
-      memberSearchKeyword = '';
-      const input = document.getElementById('memberSearchInput');
-      if (input) input.value = '';
-      const clearBtn = document.getElementById('clearSearchBtn');
-      if (clearBtn) clearBtn.style.display = 'none';
-      renderMemberPool();
-    }
-
-    function renderMemberPool() {
-      if (!state) return;
-      const container = document.getElementById('memberPoolList');
-      const metaEl = document.getElementById('memberSearchMeta');
-      const routeOptions = state.routes.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.lineName)}</option>`).join('');
-
-      const allMembers = state.members || [];
-      const filteredMembers = !memberSearchKeyword
-        ? allMembers
-        : allMembers.filter(m => {
-            const assignedLines = getAssignedRouteNames(m.id).join(' ');
-            const statusText = assignedLines || (m.noPickup ? '无需接送 自驾 亲友接送' : '未排线路');
-            const haystack = [
-              m.name,
-              m.phone,
-              m.address,
-              m.specialNeeds,
-              m.notes,
-              statusText
-            ].filter(Boolean).join(' ').toLowerCase();
-            return haystack.includes(memberSearchKeyword);
-          });
-
-      if (metaEl) {
-        metaEl.textContent = memberSearchKeyword
-          ? `共 ${allMembers.length} 人，匹配 ${filteredMembers.length} 人`
-          : `共 ${allMembers.length} 人`;
-      }
-
-      if (filteredMembers.length === 0) {
-        container.innerHTML = `<div style="padding:18px 8px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed #d1d5db;border-radius:10px;">
-          ${allMembers.length === 0 ? '暂无长者卡片，请在上方新建' : '未找到匹配的人员卡片'}
-        </div>`;
-        return;
-      }
-
-      container.innerHTML = filteredMembers.map(m => {
-        const assignedLines = getAssignedRouteNames(m.id);
-        let routeBadgeHtml = '';
-        if (assignedLines.length > 0) {
-          routeBadgeHtml = `<span class="route-status-badge assigned">已排：${assignedLines.map(escapeHtml).join('、')}</span>`;
-        } else if (m.noPickup) {
-          routeBadgeHtml = `<span class="route-status-badge self-transport">无需接送（自驾或亲友接送）</span>`;
-        } else {
-          routeBadgeHtml = `<span class="route-status-badge unassigned">未排线路</span>`;
-        }
-
-        return `
-          <div class="member-card" draggable="true" ondragstart="draggedMemberId='${escapeHtml(m.id)}'">
-            <div class="member-head">
-              <span>${escapeHtml(m.name)}</span>
-              <span style="font-size:12px;color:var(--muted);font-weight:400;">${escapeHtml(m.phone || '')}</span>
-            </div>
-            <div>
-              ${routeBadgeHtml}
-              ${m.specialNeeds ? `<span class="tag">特殊需要：${escapeHtml(m.specialNeeds)}</span>` : ''}
-            </div>
-            <div class="member-detail">${escapeHtml(m.address || '')}</div>
-            ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${escapeHtml(m.notes)}</div>` : ''}
-            <div class="member-actions">
-              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){handleMemberRouteSelect('${escapeHtml(m.id)}', this.value); this.value='';}">
-                <option value="">+ 加入线路...</option>
-                ${routeOptions}
-                <option value="${NO_PICKUP_VALUE}">无需接送（自驾或亲友接送）</option>
-              </select>
-              ${m.noPickup ? `<button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="setMemberNoPickup('${escapeHtml(m.id)}', false)">恢复待排</button>` : ''}
-              <button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="editMember('${escapeHtml(m.id)}')">编辑</button>
-              <button class="btn btn-danger" type="button" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${escapeHtml(m.id)}')">删除</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderRoutes() {
-      const container = document.getElementById('routesGrid');
-      const memberMap = new Map(state.members.map(m => [m.id, m]));
-      const availableVehicles = state.vehicles || [];
-      const routes = state.routes || [];
-
-      if (routes.length === 0) {
-        container.innerHTML = `<div style="grid-column:1/-1;padding:24px 12px;text-align:center;color:var(--muted);font-size:13.5px;border:1px dashed #d1d5db;border-radius:12px;">
-          当前暂无线路，请在上方「线路管理」中添加线路。
-        </div>`;
-        return;
-      }
-
-      container.innerHTML = routes.map(route => {
-        const vehicleOptions = [`<option value="">未指定车辆</option>`]
-          .concat(availableVehicles.map(v => `<option value="${escapeHtml(v)}" ${route.vehicleNo === v ? 'selected' : ''}>${escapeHtml(v)}</option>`))
-          .join('');
-
-        const driverOptions = [`<option value="">未指定司机</option>`]
-          .concat(state.drivers.map(d => `<option value="${escapeHtml(d.id)}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`))
-          .join('');
-
-        const stopsHtml = (!route.stops || route.stops.length === 0)
-          ? `<div style="padding:18px 8px;text-align:center;color:var(--muted);font-size:12.5px;border:1px dashed #d1d5db;border-radius:8px;">
-               拖入卡片或从左侧「+ 加入线路」添加站点
-             </div>`
-          : route.stops.map((stop, idx) => {
-              const m = memberMap.get(stop.memberId);
-              if (!m) return '';
-              const timeStr = stop.updatedAt ? ` · ${formatShortTime(stop.updatedAt)}` : '';
-              return `
-                <div class="stop-item">
-                  <div class="stop-item-top">
-                    <span>#${idx + 1} ${escapeHtml(m.name)}</span>
-                    <div style="display:flex;gap:4px;">
-                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${escapeHtml(route.id)}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
-                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${escapeHtml(route.id)}', ${idx}, 1)" ${idx === route.stops.length - 1 ? 'disabled' : ''}>↓</button>
-                      <button class="btn btn-danger" type="button" style="padding:2px 6px;font-size:11px;" onclick="removeStop('${escapeHtml(route.id)}', ${idx})">移出</button>
-                    </div>
-                  </div>
-                  <div style="font-size:12px;color:#4b5563;margin-top:3px;">${escapeHtml(m.address || '')}</div>
-                  ${m.specialNeeds ? `<span class="tag">${escapeHtml(m.specialNeeds)}</span>` : ''}
-                  <div class="status-row">
-                    <span class="status-pill ${stop.pickedUp ? 'ok' : ''}">${stop.pickedUp ? '✓ 已接送' : '待接送'}</span>
-                    <span class="status-pill ${stop.mealDelivered ? 'ok' : ''}">${stop.mealDelivered ? '✓ 餐食已送达' : '餐食待送达'}</span>
-                    ${timeStr ? `<span style="font-size:11px;color:var(--muted);">${timeStr}</span>` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('');
-
-        return `
-          <div class="route-card"
-            ondragover="event.preventDefault(); this.classList.add('drag-over');"
-            ondragleave="this.classList.remove('drag-over');"
-            ondrop="event.preventDefault(); this.classList.remove('drag-over'); if(draggedMemberId){ addMemberToRoute(draggedMemberId, '${escapeHtml(route.id)}'); draggedMemberId = null; }">
-            <div class="route-top">
-              <span class="route-name">${escapeHtml(route.lineName)}</span>
-              <span style="font-size:12px;color:var(--muted);">共 ${(route.stops || []).length} 站</span>
-            </div>
-            <div class="schedule-controls">
-              <div>
-                <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">日期</label>
-                <input type="date" class="input" style="padding:6px 8px;font-size:12.5px;" value="${escapeHtml(route.dispatchDate || '')}" onchange="updateRouteSchedule('${escapeHtml(route.id)}', 'dispatchDate', this.value)" />
-              </div>
-              <div>
-                <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">发车时间</label>
-                <input type="time" class="input" style="padding:6px 8px;font-size:12.5px;" value="${escapeHtml(route.departureTime || '')}" onchange="updateRouteSchedule('${escapeHtml(route.id)}', 'departureTime', this.value)" />
-              </div>
-            </div>
-            <div class="assign-controls">
-              <div>
-                <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定车辆</label>
-                <select class="select" onchange="updateRouteVehicle('${escapeHtml(route.id)}', this.value)">
-                  ${vehicleOptions}
-                </select>
-              </div>
-              <div>
-                <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定司机</label>
-                <select class="select" onchange="updateRouteDriver('${escapeHtml(route.id)}', this.value)">
-                  ${driverOptions}
-                </select>
-              </div>
-            </div>
-            <div>${stopsHtml}</div>
-          </div>
-        `;
-      }).join('');
+    function buildMapUrl(address) {
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address || '');
     }
 
     function renderAll() {
       if (!state) return;
-      document.getElementById('syncStatusText').textContent =
-        `最近更新：${new Date(state.updatedAt || Date.now()).toLocaleString('zh-CN')} · Firebase 云端已认证同步`;
-      renderRouteRoster();
-      renderVehicleRoster();
-      renderDriverRoster();
-      renderMemberPool();
-      renderRoutes();
+      syncIdentitySelectors();
+
+      const route = findActiveRoute();
+      const driverObj = state.drivers.find(d => d.id === selectedDriverId);
+      const driverName = driverObj ? (stripParentheses(driverObj.name) || driverObj.name) : '未选择司机';
+      const memberMap = new Map(state.members.map(m => [m.id, m]));
+
+      document.getElementById('syncInfo').textContent =
+        `最近同步：${state.updatedAt ? new Date(state.updatedAt).toLocaleTimeString('zh-CN', { hour12: false }) : '刚刚'} · Firebase 云端已认证同步`;
+
+      const summaryEl = document.getElementById('routeSummary');
+      if (!route) {
+        summaryEl.innerHTML = `<div class="sub">当前暂无排班线路。</div>`;
+        document.getElementById('stopsContainer').innerHTML = '';
+        return;
+      }
+
+      const stops = route.stops || [];
+      const pickedCount = stops.filter(s => s.pickedUp).length;
+      const mealCount = stops.filter(s => s.mealDelivered).length;
+      const tempChanged = selectedVehicleNo && route.vehicleNo && selectedVehicleNo !== route.vehicleNo;
+      const scheduleText = [route.dispatchDate, route.departureTime].filter(Boolean).join(' · ') || '未设置发车时间';
+
+      summaryEl.innerHTML = `
+        <div class="route-banner">
+          <div>
+            <div class="route-main">${escapeHtml(route.lineName)} · 执勤司机：${escapeHtml(driverName)}</div>
+            <div class="schedule-badge">发车时间：${escapeHtml(scheduleText)}</div>
+            <div class="sub">线路默认车辆：${escapeHtml(route.vehicleNo || '未指定')} ｜ 当前驾驶车辆：${escapeHtml(selectedVehicleNo || '未指定')}</div>
+          </div>
+          <div style="text-align:right;font-size:13px;font-weight:700;">
+            <div>已接送 ${pickedCount} / ${stops.length}</div>
+            <div style="color:var(--success);margin-top:2px;">已送餐 ${mealCount} / ${stops.length}</div>
+          </div>
+        </div>
+        ${tempChanged ? `<div class="temp-alert">提示：当前驾驶车辆（${escapeHtml(selectedVehicleNo)}）与线路原定车辆（${escapeHtml(route.vehicleNo)}）不一致，已按临时换车同步。</div>` : ''}
+      `;
+
+      const stopsContainer = document.getElementById('stopsContainer');
+      if (!stops.length) {
+        stopsContainer.innerHTML = `
+          <div class="card" style="text-align:center;color:var(--muted);padding:28px 14px;">
+            该线路当前没有待执行的接送或送餐站点。
+          </div>
+        `;
+        return;
+      }
+
+      stopsContainer.innerHTML = stops.map((stop, idx) => {
+        const m = memberMap.get(stop.memberId) || {
+          id: stop.memberId,
+          name: '未知长者',
+          phone: '',
+          address: '',
+          specialNeeds: '',
+          notes: ''
+        };
+        const memberId = m.id || stop.memberId;
+        const isEditing = editingMemberId === memberId;
+        const allDone = Boolean(stop.pickedUp && stop.mealDelivered);
+        const timeText = stop.updatedAt ? `最近确认：${formatTime(stop.updatedAt)}` : '尚未确认';
+        const callUrl = buildCallUrl(m.phone);
+        const navUrl = buildMapUrl(m.address);
+
+        const editFormHtml = isEditing ? `
+          <form class="edit-box" onsubmit="saveMemberEdit(event, '${escapeHtml(memberId)}')">
+            <div class="edit-box-title">编辑「${escapeHtml(m.name)}」资料</div>
+            <div class="form-group">
+              <label for="editPhone_${escapeHtml(memberId)}">联系电话</label>
+              <input class="input" id="editPhone_${escapeHtml(memberId)}" value="${escapeHtml(m.phone || '')}" placeholder="例如：713-555-0199" />
+            </div>
+            <div class="form-group">
+              <label for="editAddress_${escapeHtml(memberId)}">接送 / 送餐地址 *</label>
+              <input class="input" id="editAddress_${escapeHtml(memberId)}" value="${escapeHtml(m.address || '')}" required placeholder="请输入详细地址" />
+            </div>
+            <div class="form-group">
+              <label for="editSpecial_${escapeHtml(memberId)}">特殊需要（如轮椅、需送上门）</label>
+              <input class="input" id="editSpecial_${escapeHtml(memberId)}" value="${escapeHtml(m.specialNeeds || '')}" placeholder="例如：轮椅、需送上门" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="editNotes_${escapeHtml(memberId)}">备注说明</label>
+              <input class="input" id="editNotes_${escapeHtml(memberId)}" value="${escapeHtml(m.notes || '')}" placeholder="例如：先电话联系家属" />
+            </div>
+            <div class="edit-actions">
+              <button type="submit" class="btn btn-primary" style="flex:1;">保存修改</button>
+              <button type="button" class="btn" onclick="cancelMemberEdit()">取消</button>
+            </div>
+          </form>
+        ` : '';
+
+        return `
+          <article class="stop-card ${allDone ? 'done-all' : ''}">
+            <div class="stop-header">
+              <div class="stop-name">${escapeHtml(m.name)}</div>
+              <div class="stop-header-right">
+                <button
+                  type="button"
+                  class="btn btn-edit"
+                  onclick="openMemberEdit('${escapeHtml(memberId)}')"
+                >
+                  ${isEditing ? '收起编辑' : '编辑'}
+                </button>
+                <span class="seq-badge">第 ${idx + 1} 站</span>
+              </div>
+            </div>
+
+            ${m.specialNeeds ? `<div class="special-need">特殊需要：${escapeHtml(m.specialNeeds)}</div>` : ''}
+
+            <div class="info-line"><strong>地址：</strong>${escapeHtml(m.address || '无地址')}</div>
+            <div class="info-line"><strong>电话：</strong>${escapeHtml(m.phone || '无电话')}</div>
+            ${m.notes ? `<div class="info-line"><strong>备注：</strong>${escapeHtml(m.notes)}</div>` : ''}
+
+            ${editFormHtml}
+
+            <div class="action-grid">
+              <a
+                class="btn btn-call ${callUrl ? '' : 'btn-disabled'}"
+                href="${callUrl || 'javascript:void(0)'}"
+              >
+                一键呼叫
+              </a>
+
+              <a
+                class="btn btn-nav ${m.address ? '' : 'btn-disabled'}"
+                href="${m.address ? navUrl : 'javascript:void(0)'}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                一键导航
+              </a>
+
+              <button
+                type="button"
+                class="btn ${stop.pickedUp ? 'btn-soft-done' : 'btn-primary'}"
+                onclick="toggleStopStatus('${escapeHtml(route.id)}', ${idx}, 'pickedUp')"
+              >
+                ${stop.pickedUp ? '✓ 确认已接送（已确认）' : '确认已接送'}
+              </button>
+
+              <button
+                type="button"
+                class="btn ${stop.mealDelivered ? 'btn-soft-done' : 'btn-success'}"
+                onclick="toggleStopStatus('${escapeHtml(route.id)}', ${idx}, 'mealDelivered')"
+              >
+                ${stop.mealDelivered ? '✓ 餐食已送达（已确认）' : '餐食已送达'}
+              </button>
+            </div>
+
+            <div class="updated-note">${escapeHtml(timeText)}</div>
+          </article>
+        `;
+      }).join('');
     }
 
-    document.getElementById('dispatcherLoginForm').addEventListener('submit', async function (e) {
+    document.getElementById('driverLoginForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const errEl = document.getElementById('authErrorText');
       const btn = document.getElementById('loginSubmitBtn');
@@ -1311,7 +856,7 @@ dispatcher_html = """<!DOCTYPE html>
         errEl.textContent = '登录失败：请检查邮箱或密码是否正确（' + (err && err.code ? err.code : '认证错误') + '）。';
       } finally {
         btn.disabled = false;
-        btn.textContent = '登录调度员端';
+        btn.textContent = '登录司机端';
       }
     });
 
@@ -1341,7 +886,7 @@ dispatcher_html = """<!DOCTYPE html>
             });
           }
         } catch (err) {
-          showToast('读取云端数据失败，请检查数据库规则');
+          showToast('读取云端任务失败，请检查数据库规则');
         }
       });
     })();
@@ -1350,7 +895,7 @@ dispatcher_html = """<!DOCTYPE html>
 </html>
 """
 
-with open("dispatcher_v4.html", "w", encoding="utf-8") as f:
-    f.write(dispatcher_html.strip() + "\n")
+with open("driver_editable_stop.html", "w", encoding="utf-8") as f:
+    f.write(driver_html.strip() + "\n")
 
-print("Generated dispatcher_v4.html")
+print("Generated driver_editable_stop.html")
