@@ -63,8 +63,19 @@
       gap: 18px;
       align-items: start;
     }
+    .right-sticky-col {
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow-y: auto;
+    }
     @media (max-width: 980px) {
       .layout { grid-template-columns: 1fr; }
+      .right-sticky-col {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+      }
     }
     .panel {
       background: var(--card);
@@ -82,6 +93,17 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
+    }
+    .search-bar-wrap {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .search-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
     }
     .batch-schedule-bar {
       background: #f8fafc;
@@ -289,13 +311,6 @@
       color: var(--success);
       font-weight: 600;
     }
-    .driver-code-row {
-      display: grid;
-      grid-template-columns: 82px 1fr auto;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 8px;
-    }
     .error-text {
       color: #b91c1c;
       font-size: 13px;
@@ -388,23 +403,34 @@
 
         <section class="panel">
           <h2 class="panel-title">
-            <span>司机专用登录代码</span>
-            <span style="font-size:12px;color:var(--muted);font-weight:400;">调度员可随时修改</span>
-          </h2>
-          <div id="driverCodesList"></div>
-        </section>
-
-        <section class="panel">
-          <h2 class="panel-title">
             <span>人员卡片池</span>
-            <span style="font-size:12px;color:var(--muted);font-weight:400;">显示当前线路归属，可拖拽排班</span>
+            <span style="font-size:12px;color:var(--muted);font-weight:400;">可搜索或拖拽排班</span>
           </h2>
+          <div class="search-bar-wrap">
+            <input
+              type="search"
+              class="input"
+              id="memberSearchInput"
+              placeholder="搜索姓名、电话、地址、备注或线路..."
+              oninput="handleMemberSearch(this.value)"
+            />
+            <button
+              class="btn"
+              type="button"
+              id="clearSearchBtn"
+              style="display:none;white-space:nowrap;"
+              onclick="clearMemberSearch()"
+            >
+              清空
+            </button>
+          </div>
+          <div class="search-meta" id="memberSearchMeta"></div>
           <div id="memberPoolList"></div>
         </section>
       </div>
 
-      <div>
-        <section class="panel">
+      <div class="right-sticky-col">
+        <section class="panel" style="margin-bottom:0;">
           <h2 class="panel-title">
             <span>线路排班 · 日期发车时间、临时指定车辆与指定司机</span>
             <span style="font-size:12px;color:var(--muted);font-weight:400;">司机确认状态后此处自动同步更新</span>
@@ -447,6 +473,7 @@
     let state = null;
     let draggedMemberId = null;
     let isSubscribed = false;
+    let memberSearchKeyword = '';
 
     function getDefaultState() {
       const base = (window.FleetSync && window.FleetSync.DEFAULT_STATE)
@@ -717,20 +744,6 @@
       await persist(`${route.lineName} 已指定司机：${drv ? drv.name : '未指定司机'}`);
     }
 
-    async function saveDriverCode(driverId) {
-      const input = document.getElementById('code-input-' + driverId);
-      if (!input) return;
-      const nextCode = input.value.trim().toUpperCase();
-      if (!nextCode) {
-        showToast('登录码不能为空');
-        return;
-      }
-      const driver = state.drivers.find(d => d.id === driverId);
-      if (!driver) return;
-      driver.code = nextCode;
-      await persist(`已更新 ${driver.name} 的登录码为 ${nextCode}`);
-    }
-
     function getAssignedRouteNames(memberId) {
       const names = [];
       (state.routes || []).forEach(r => {
@@ -741,22 +754,61 @@
       return names;
     }
 
-    function renderDriverCodes() {
-      const container = document.getElementById('driverCodesList');
-      container.innerHTML = state.drivers.map(d => `
-        <div class="driver-code-row">
-          <strong style="font-size:13.5px;">${d.name}</strong>
-          <input class="input" id="code-input-${d.id}" value="${d.code || ''}" style="text-transform:uppercase;" />
-          <button class="btn" type="button" onclick="saveDriverCode('${d.id}')">保存</button>
-        </div>
-      `).join('');
+    function handleMemberSearch(value) {
+      memberSearchKeyword = (value || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (clearBtn) {
+        clearBtn.style.display = memberSearchKeyword ? 'inline-block' : 'none';
+      }
+      renderMemberPool();
+    }
+
+    function clearMemberSearch() {
+      memberSearchKeyword = '';
+      const input = document.getElementById('memberSearchInput');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (clearBtn) clearBtn.style.display = 'none';
+      renderMemberPool();
     }
 
     function renderMemberPool() {
+      if (!state) return;
       const container = document.getElementById('memberPoolList');
+      const metaEl = document.getElementById('memberSearchMeta');
       const routeOptions = state.routes.map(r => `<option value="${r.id}">${r.lineName}</option>`).join('');
 
-      container.innerHTML = state.members.map(m => {
+      const allMembers = state.members || [];
+      const filteredMembers = !memberSearchKeyword
+        ? allMembers
+        : allMembers.filter(m => {
+            const assignedLines = getAssignedRouteNames(m.id).join(' ');
+            const statusText = assignedLines || (m.noPickup ? '无需接送 自驾 亲友接送' : '未排线路');
+            const haystack = [
+              m.name,
+              m.phone,
+              m.address,
+              m.specialNeeds,
+              m.notes,
+              statusText
+            ].filter(Boolean).join(' ').toLowerCase();
+            return haystack.includes(memberSearchKeyword);
+          });
+
+      if (metaEl) {
+        metaEl.textContent = memberSearchKeyword
+          ? `共 ${allMembers.length} 人，匹配 ${filteredMembers.length} 人`
+          : `共 ${allMembers.length} 人`;
+      }
+
+      if (filteredMembers.length === 0) {
+        container.innerHTML = `<div style="padding:18px 8px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed #d1d5db;border-radius:10px;">
+          ${allMembers.length === 0 ? '暂无长者卡片，请在上方新建' : '未找到匹配的人员卡片'}
+        </div>`;
+        return;
+      }
+
+      container.innerHTML = filteredMembers.map(m => {
         const assignedLines = getAssignedRouteNames(m.id);
         let routeBadgeHtml = '';
         if (assignedLines.length > 0) {
@@ -804,7 +856,7 @@
           .join('');
 
         const driverOptions = [`<option value="">未指定司机</option>`]
-          .concat(state.drivers.map(d => `<option value="${d.id}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${d.name}（${d.code}）</option>`))
+          .concat(state.drivers.map(d => `<option value="${d.id}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${d.name}</option>`))
           .join('');
 
         const stopsHtml = (!route.stops || route.stops.length === 0)
@@ -879,7 +931,6 @@
       if (!state) return;
       document.getElementById('syncStatusText').textContent =
         `最近更新：${new Date(state.updatedAt || Date.now()).toLocaleString('zh-CN')} · Firebase 云端已认证同步`;
-      renderDriverCodes();
       renderMemberPool();
       renderRoutes();
     }
