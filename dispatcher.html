@@ -1,9 +1,9 @@
-driver_html = """<!DOCTYPE html>
+dispatcher_html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>司机端 · 接送与送餐任务</title>
+  <title>调度员端 · 接送与送餐排班中心</title>
   <style>
     :root {
       --bg: #f3f5f8;
@@ -26,7 +26,7 @@ driver_html = """<!DOCTYPE html>
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-bottom: 48px;
+      padding-bottom: 56px;
     }
     .auth-overlay {
       min-height: 100vh;
@@ -37,7 +37,7 @@ driver_html = """<!DOCTYPE html>
     }
     .auth-card {
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       background: #fff;
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -46,196 +46,97 @@ driver_html = """<!DOCTYPE html>
     }
     .auth-title { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
     .auth-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
-    .form-group { margin-bottom: 12px; }
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 5px;
-      color: #374151;
-    }
-    .input, .select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 9px;
-      font-size: 14px;
-      background: #fff;
-    }
-    .btn-block {
-      width: 100%;
-      padding: 11px;
-      font-size: 15px;
-    }
-    .error-text {
-      color: var(--danger);
-      font-size: 13px;
-      margin-top: 8px;
-      min-height: 18px;
-    }
     .topbar {
       background: #fff;
       border-bottom: 1px solid var(--border);
-      padding: 14px 16px;
+      padding: 14px 18px;
       position: sticky;
       top: 0;
       z-index: 20;
     }
     .topbar-inner {
-      max-width: 780px;
+      max-width: 1180px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
-    .topbar h1 { margin: 0; font-size: 18px; }
+    .topbar h1 { margin: 0; font-size: 19px; }
     .sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
     .wrap {
-      max-width: 780px;
+      max-width: 1180px;
       margin: 16px auto;
-      padding: 0 14px;
+      padding: 0 16px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr; }
     }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
     }
-    .identity-box {
-      background: var(--primary-soft);
-      border: 1px solid #bfdbfe;
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 14px;
+    .card-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
-    .identity-title {
+    .form-group { margin-bottom: 11px; }
+    .form-group label {
+      display: block;
       font-size: 12.5px;
-      color: #1e40af;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      color: #374151;
     }
-    .identity-grid {
+    .input, .select {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      font-size: 13.5px;
+      background: #fff;
+    }
+    .form-row-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
     @media (max-width: 600px) {
-      .identity-grid { grid-template-columns: 1fr; }
-    }
-    .identity-label {
-      display: block;
-      font-size: 12px;
-      color: #374151;
-      margin-bottom: 4px;
-      font-weight: 600;
-    }
-    .route-banner {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .route-main { font-size: 18px; font-weight: 800; color: var(--primary); }
-    .schedule-badge {
-      display: inline-block;
-      margin-top: 5px;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #1e3a8a;
-      background: #dbeafe;
-      padding: 3px 9px;
-      border-radius: 999px;
-    }
-    .temp-alert {
-      margin-top: 8px;
-      background: var(--warn-soft);
-      border: 1px solid #fcd34d;
-      color: var(--warn);
-      border-radius: 10px;
-      padding: 8px 11px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .stop-card {
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-      background: #fff;
-    }
-    .stop-card.done-all {
-      border-color: #a7f3d0;
-      background: #f8fffe;
-    }
-    .stop-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-    .stop-header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .stop-name { font-size: 17px; font-weight: 800; }
-    .seq-badge {
-      background: #111827;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 999px;
-    }
-    .special-need {
-      display: inline-block;
-      margin-top: 7px;
-      background: var(--danger-soft);
-      color: var(--danger);
-      border: 1px solid #fecaca;
-      font-size: 12.5px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 6px;
-    }
-    .info-line {
-      margin-top: 8px;
-      font-size: 13.5px;
-      color: #374151;
-      line-height: 1.45;
-    }
-    .action-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
+      .form-row-2 { grid-template-columns: 1fr; }
     }
     .btn {
       border: 1px solid var(--border);
       background: #fff;
       color: var(--text);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 13.5px;
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
     }
-    .btn-edit {
-      padding: 5px 10px;
+    .btn-sm {
+      padding: 5px 9px;
       font-size: 12px;
-      border-radius: 8px;
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      color: #1e293b;
+      border-radius: 7px;
     }
     .btn-primary {
       background: var(--primary);
@@ -247,47 +148,121 @@ driver_html = """<!DOCTYPE html>
       border-color: var(--success);
       color: #fff;
     }
-    .btn-soft-done {
-      background: var(--success-soft);
-      border-color: #6ee7b7;
-      color: var(--success);
+    .btn-danger-soft {
+      background: var(--danger-soft);
+      border-color: #fecaca;
+      color: var(--danger);
     }
-    .btn-call {
-      background: #eff6ff;
-      border-color: #93c5fd;
-      color: #1e40af;
-    }
-    .btn-nav {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      color: #0f172a;
-    }
-    .btn-disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .updated-note {
+    .error-text {
+      color: var(--danger);
+      font-size: 13px;
       margin-top: 8px;
+      min-height: 18px;
+    }
+    .member-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .member-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .member-name {
+      font-size: 15px;
+      font-weight: 800;
+    }
+    .tag {
+      display: inline-block;
       font-size: 11.5px;
-      color: var(--muted);
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .tag-need {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+    }
+    .tag-nopickup {
+      background: var(--warn-soft);
+      color: var(--warn);
+      border: 1px solid #fcd34d;
+    }
+    .member-meta {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.45;
     }
     .edit-box {
-      margin-top: 12px;
+      margin-top: 10px;
       padding: 12px;
-      border-radius: 12px;
+      border-radius: 10px;
       background: #f8fafc;
       border: 1px solid #cbd5e1;
     }
-    .edit-box-title {
-      font-size: 13.5px;
+    .edit-title {
+      font-size: 13px;
       font-weight: 800;
+      margin-bottom: 8px;
       color: #0f172a;
-      margin-bottom: 10px;
     }
-    .edit-actions {
+    .route-tabs {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .route-tab {
+      padding: 7px 12px;
+      border-radius: 9px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .route-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .stop-item {
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 11px 12px;
+      margin-bottom: 9px;
+      background: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .status-pill {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+      margin-top: 4px;
+    }
+    .pill-done {
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid #a7f3d0;
+    }
+    .pill-pending {
+      background: #f3f4f6;
+      color: #4b5563;
+      border: 1px solid #e5e7eb;
     }
     .toast {
       position: fixed;
@@ -310,18 +285,18 @@ driver_html = """<!DOCTYPE html>
 <body>
   <div class="auth-overlay" id="authScreen">
     <div class="auth-card">
-      <h2 class="auth-title">司机端登录</h2>
-      <p class="auth-sub">请使用 Firebase 后台已创建的邮箱与密码登录，未授权账号无法查看任务与长者信息。</p>
-      <form id="driverLoginForm">
+      <h2 class="auth-title">调度员端登录</h2>
+      <p class="auth-sub">请使用 Firebase 后台已授权的邮箱与密码登录，以管理长者档案、线路排班与车辆司机指派。</p>
+      <form id="dispatcherLoginForm">
         <div class="form-group">
           <label for="loginEmail">登录邮箱</label>
-          <input class="input" type="email" id="loginEmail" required autocomplete="username" placeholder="driver@example.com" />
+          <input class="input" type="email" id="loginEmail" required autocomplete="username" placeholder="dispatcher@example.com" />
         </div>
         <div class="form-group">
           <label for="loginPassword">登录密码</label>
           <input class="input" type="password" id="loginPassword" required autocomplete="current-password" placeholder="请输入密码" />
         </div>
-        <button class="btn btn-primary btn-block" type="submit" id="loginSubmitBtn">登录司机端</button>
+        <button class="btn btn-primary" style="width:100%;padding:10px;font-size:14px;" type="submit" id="loginSubmitBtn">登录调度员端</button>
         <div class="error-text" id="authErrorText"></div>
       </form>
     </div>
@@ -331,37 +306,88 @@ driver_html = """<!DOCTYPE html>
     <header class="topbar">
       <div class="topbar-inner">
         <div>
-          <h1>司机端 · 今日接送与送餐任务</h1>
-          <div class="sub" id="syncInfo">Firebase 云端已认证同步</div>
+          <h1>调度员端 · 接送与送餐排班中心</h1>
+          <div class="sub" id="syncInfo">Firebase 云端实时同步中</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <span id="currentUserBadge" style="font-size:12px;color:#374151;font-weight:600;"></span>
-          <button class="btn btn-primary" style="padding:8px 12px;font-size:13px;" type="button" onclick="refreshFromStore()">刷新任务</button>
-          <button class="btn" style="padding:8px 12px;font-size:13px;" type="button" onclick="logoutDriver()">退出登录</button>
+          <button class="btn" type="button" onclick="refreshFromStore()">刷新数据</button>
+          <button class="btn" type="button" onclick="logoutDispatcher()">退出登录</button>
         </div>
       </div>
     </header>
 
     <main class="wrap">
-      <section class="card">
-        <div class="identity-box">
-          <div class="identity-title">当前执勤司机身份</div>
-          <div class="identity-grid">
-            <div>
-              <label class="identity-label" for="driverSelect">执勤司机</label>
-              <select class="select" id="driverSelect" onchange="onDriverChange(this.value)"></select>
+      <div class="grid-2">
+        <div>
+          <section class="card">
+            <h2 class="card-title">新增长者档案</h2>
+            <form id="addMemberForm" onsubmit="addMember(event)">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="newMemberName">长者姓名 *</label>
+                  <input class="input" id="newMemberName" required placeholder="例如：张奶奶" />
+                </div>
+                <div class="form-group">
+                  <label for="newMemberPhone">联系电话</label>
+                  <input class="input" id="newMemberPhone" placeholder="例如：713-555-0123" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="newMemberAddress">接送 / 送餐地址 *</label>
+                <input class="input" id="newMemberAddress" required placeholder="请输入详细地址" />
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="newMemberSpecial">特殊需要</label>
+                  <input class="input" id="newMemberSpecial" placeholder="例如：轮椅、需送上门" />
+                </div>
+                <div class="form-group">
+                  <label for="newMemberNotes">备注说明</label>
+                  <input class="input" id="newMemberNotes" placeholder="例如：需提前致电家属" />
+                </div>
+              </div>
+              <button class="btn btn-primary" type="submit">添加长者</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2 class="card-title">
+              <span>长者名录</span>
+              <span id="memberCountBadge" style="font-size:12.5px;color:var(--muted);"></span>
+            </h2>
+            <div class="form-group">
+              <input class="input" id="memberSearchInput" oninput="renderMembersList()" placeholder="搜索姓名、电话、地址或特殊需要..." />
             </div>
-            <div>
-              <label class="identity-label" for="vehicleSelect">当前驾驶车辆（可临时换车）</label>
-              <select class="select" id="vehicleSelect" onchange="onVehicleChange(this.value)"></select>
-            </div>
-          </div>
+            <div id="membersList"></div>
+          </section>
         </div>
 
-        <div id="routeSummary"></div>
-      </section>
+        <div>
+          <section class="card">
+            <h2 class="card-title">线路排班与车辆指派</h2>
+            <div class="route-tabs" id="routeTabs"></div>
+            <div id="routeEditor"></div>
+          </section>
 
-      <section id="stopsContainer"></section>
+          <section class="card">
+            <h2 class="card-title">
+              <span>当前线路站点安排</span>
+              <span id="routeStopCount" style="font-size:12.5px;color:var(--muted);"></span>
+            </h2>
+            <div class="form-row-2" style="margin-bottom:12px;">
+              <div>
+                <label class="sub" style="display:block;margin-bottom:4px;">选择长者加入当前线路</label>
+                <select class="select" id="assignMemberSelect"></select>
+              </div>
+              <div style="display:flex;align-items:flex-end;">
+                <button class="btn btn-success" style="width:100%;" type="button" onclick="addStopToActiveRoute()">加入站点</button>
+              </div>
+            </div>
+            <div id="routeStopsList"></div>
+          </section>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -373,14 +399,12 @@ driver_html = """<!DOCTYPE html>
   <script src="./firebase-config.js"></script>
   <script>
     const DB_ROOT_PATH = 'fleetDispatchState';
-    const DRIVER_PREF_PREFIX = 'fleet_dispatch_driver_pref_v1_';
 
     let auth = null;
     let db = null;
     let dbRef = null;
     let state = null;
-    let selectedDriverId = '';
-    let selectedVehicleNo = '';
+    let activeRouteId = '';
     let editingMemberId = null;
     let isSubscribed = false;
 
@@ -482,162 +506,10 @@ driver_html = """<!DOCTYPE html>
       window.__toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     }
 
-    function formatTime(iso) {
-      if (!iso) return '';
-      const d = new Date(iso);
-      return d.toLocaleTimeString('zh-CN', { hour12: false });
-    }
-
-    function loadDriverPref(uid) {
-      try {
-        const raw = localStorage.getItem(DRIVER_PREF_PREFIX + (uid || 'default'));
-        return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function saveDriverPref(uid) {
-      try {
-        localStorage.setItem(
-          DRIVER_PREF_PREFIX + (uid || 'default'),
-          JSON.stringify({
-            driverId: selectedDriverId,
-            vehicleNo: selectedVehicleNo
-          })
-        );
-      } catch (e) {}
-    }
-
-    function syncIdentitySelectors() {
-      const uid = auth && auth.currentUser ? auth.currentUser.uid : 'default';
-      const pref = loadDriverPref(uid);
-
-      if (!selectedDriverId) {
-        if (pref && pref.driverId && state.drivers.some(d => d.id === pref.driverId)) {
-          selectedDriverId = pref.driverId;
-        } else {
-          selectedDriverId = (state.drivers[0] && state.drivers[0].id) || '';
-        }
-      } else if (selectedDriverId && !state.drivers.some(d => d.id === selectedDriverId)) {
-        selectedDriverId = (state.drivers[0] && state.drivers[0].id) || '';
-      }
-
-      const driverSelect = document.getElementById('driverSelect');
-      driverSelect.innerHTML = state.drivers.length
-        ? state.drivers.map(d => {
-            const cleanName = stripParentheses(d.name) || d.name;
-            return `<option value="${escapeHtml(d.id)}" ${d.id === selectedDriverId ? 'selected' : ''}>${escapeHtml(cleanName)}</option>`;
-          }).join('')
-        : `<option value="">暂无司机</option>`;
-
-      const matchedRoute = findActiveRoute();
-      if (!selectedVehicleNo) {
-        if (pref && pref.vehicleNo && state.vehicles.includes(pref.vehicleNo)) {
-          selectedVehicleNo = pref.vehicleNo;
-        } else {
-          selectedVehicleNo = (matchedRoute && matchedRoute.vehicleNo) || state.vehicles[0] || '';
-        }
-      } else if (selectedVehicleNo && !state.vehicles.includes(selectedVehicleNo)) {
-        selectedVehicleNo = (matchedRoute && matchedRoute.vehicleNo) || state.vehicles[0] || '';
-      }
-
-      const vehicleSelect = document.getElementById('vehicleSelect');
-      vehicleSelect.innerHTML = state.vehicles.length
-        ? state.vehicles.map(v => `<option value="${escapeHtml(v)}" ${v === selectedVehicleNo ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('')
-        : `<option value="">暂无车辆</option>`;
-    }
-
-    function findActiveRoute() {
-      if (!state || !Array.isArray(state.routes)) return null;
-      const byDriver = state.routes.find(r => r.assignedDriverId === selectedDriverId);
-      if (byDriver) return byDriver;
-      const byVehicle = state.routes.find(r => r.vehicleNo === selectedVehicleNo);
-      if (byVehicle) return byVehicle;
-      return state.routes[0] || null;
-    }
-
-    function onDriverChange(driverId) {
-      selectedDriverId = driverId;
-      editingMemberId = null;
-      const matchedRoute = state.routes.find(r => r.assignedDriverId === selectedDriverId);
-      if (matchedRoute && matchedRoute.vehicleNo) {
-        selectedVehicleNo = matchedRoute.vehicleNo;
-      }
-      const uid = auth && auth.currentUser ? auth.currentUser.uid : 'default';
-      saveDriverPref(uid);
-      renderAll();
-    }
-
-    async function onVehicleChange(vehicleNo) {
-      selectedVehicleNo = vehicleNo;
-      const uid = auth && auth.currentUser ? auth.currentUser.uid : 'default';
-      saveDriverPref(uid);
-
-      const route = findActiveRoute();
-      if (route) {
-        route.vehicleNo = vehicleNo;
-        state.updatedAt = new Date().toISOString();
-        await dbRef.set(state);
-        showToast(`已将 ${route.lineName} 当前车辆更新为 ${vehicleNo}`);
-      }
-      renderAll();
-    }
-
-    function openMemberEdit(memberId) {
-      editingMemberId = editingMemberId === memberId ? null : memberId;
-      renderAll();
-    }
-
-    function cancelMemberEdit() {
-      editingMemberId = null;
-      renderAll();
-    }
-
-    async function saveMemberEdit(e, memberId) {
-      e.preventDefault();
-      if (!state) return;
-
-      const phoneInput = document.getElementById('editPhone_' + memberId);
-      const addressInput = document.getElementById('editAddress_' + memberId);
-      const specialInput = document.getElementById('editSpecial_' + memberId);
-      const notesInput = document.getElementById('editNotes_' + memberId);
-
-      const phoneVal = phoneInput ? phoneInput.value.trim() : '';
-      const addressVal = addressInput ? addressInput.value.trim() : '';
-      const specialVal = specialInput ? specialInput.value.trim() : '';
-      const notesVal = notesInput ? notesInput.value.trim() : '';
-
-      if (!addressVal) {
-        showToast('地址不能为空');
-        return;
-      }
-
-      const idx = state.members.findIndex(m => m.id === memberId);
-      if (idx !== -1) {
-        state.members[idx] = Object.assign({}, state.members[idx], {
-          phone: phoneVal,
-          address: addressVal,
-          specialNeeds: specialVal,
-          notes: notesVal
-        });
-      } else {
-        state.members.push({
-          id: memberId,
-          name: '未知长者',
-          phone: phoneVal,
-          address: addressVal,
-          specialNeeds: specialVal,
-          notes: notesVal,
-          noPickup: false
-        });
-      }
-
+    async function saveCloudState() {
+      if (!state || !dbRef) return;
       state.updatedAt = new Date().toISOString();
-      editingMemberId = null;
       await dbRef.set(state);
-      renderAll();
-      showToast('长者信息已更新并同步至调度员端');
     }
 
     async function loadCloudState() {
@@ -654,192 +526,367 @@ driver_html = """<!DOCTYPE html>
     async function refreshFromStore() {
       state = await loadCloudState();
       renderAll();
-      showToast('已同步最新排班');
+      showToast('已刷新云端数据');
     }
 
-    async function logoutDriver() {
+    async function logoutDispatcher() {
       if (auth) await auth.signOut();
     }
 
-    async function toggleStopStatus(routeId, stopIndex, field) {
-      const route = state.routes.find(r => r.id === routeId);
-      if (!route || !route.stops || !route.stops[stopIndex]) return;
-      const stop = route.stops[stopIndex];
-      stop[field] = !stop[field];
-      stop.updatedAt = new Date().toISOString();
-      state.updatedAt = new Date().toISOString();
-
-      await dbRef.set(state);
-      renderAll();
-      showToast('状态已同步至调度员端');
-    }
-
-    function buildCallUrl(phone) {
-      const cleaned = String(phone || '').replace(/[^\d+]/g, '');
-      return cleaned ? 'tel:' + cleaned : '';
-    }
-
-    function buildMapUrl(address) {
-      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address || '');
-    }
-
-    function renderAll() {
+    async function addMember(e) {
+      e.preventDefault();
       if (!state) return;
-      syncIdentitySelectors();
 
-      const route = findActiveRoute();
-      const driverObj = state.drivers.find(d => d.id === selectedDriverId);
-      const driverName = driverObj ? (stripParentheses(driverObj.name) || driverObj.name) : '未选择司机';
-      const memberMap = new Map(state.members.map(m => [m.id, m]));
+      const name = document.getElementById('newMemberName').value.trim();
+      const phone = document.getElementById('newMemberPhone').value.trim();
+      const address = document.getElementById('newMemberAddress').value.trim();
+      const specialNeeds = document.getElementById('newMemberSpecial').value.trim();
+      const notes = document.getElementById('newMemberNotes').value.trim();
 
-      document.getElementById('syncInfo').textContent =
-        `最近同步：${state.updatedAt ? new Date(state.updatedAt).toLocaleTimeString('zh-CN', { hour12: false }) : '刚刚'} · Firebase 云端已认证同步`;
-
-      const summaryEl = document.getElementById('routeSummary');
-      if (!route) {
-        summaryEl.innerHTML = `<div class="sub">当前暂无排班线路。</div>`;
-        document.getElementById('stopsContainer').innerHTML = '';
+      if (!name || !address) {
+        showToast('请填写长者姓名和地址');
         return;
       }
 
-      const stops = route.stops || [];
-      const pickedCount = stops.filter(s => s.pickedUp).length;
-      const mealCount = stops.filter(s => s.mealDelivered).length;
-      const tempChanged = selectedVehicleNo && route.vehicleNo && selectedVehicleNo !== route.vehicleNo;
-      const scheduleText = [route.dispatchDate, route.departureTime].filter(Boolean).join(' · ') || '未设置发车时间';
+      state.members.push({
+        id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        name,
+        phone,
+        address,
+        specialNeeds,
+        notes,
+        noPickup: false
+      });
 
-      summaryEl.innerHTML = `
-        <div class="route-banner">
-          <div>
-            <div class="route-main">${escapeHtml(route.lineName)} · 执勤司机：${escapeHtml(driverName)}</div>
-            <div class="schedule-badge">发车时间：${escapeHtml(scheduleText)}</div>
-            <div class="sub">线路默认车辆：${escapeHtml(route.vehicleNo || '未指定')} ｜ 当前驾驶车辆：${escapeHtml(selectedVehicleNo || '未指定')}</div>
-          </div>
-          <div style="text-align:right;font-size:13px;font-weight:700;">
-            <div>已接送 ${pickedCount} / ${stops.length}</div>
-            <div style="color:var(--success);margin-top:2px;">已送餐 ${mealCount} / ${stops.length}</div>
-          </div>
-        </div>
-        ${tempChanged ? `<div class="temp-alert">提示：当前驾驶车辆（${escapeHtml(selectedVehicleNo)}）与线路原定车辆（${escapeHtml(route.vehicleNo)}）不一致，已按临时换车同步。</div>` : ''}
-      `;
+      document.getElementById('addMemberForm').reset();
+      await saveCloudState();
+      renderAll();
+      showToast('已添加长者档案');
+    }
 
-      const stopsContainer = document.getElementById('stopsContainer');
-      if (!stops.length) {
-        stopsContainer.innerHTML = `
-          <div class="card" style="text-align:center;color:var(--muted);padding:28px 14px;">
-            该线路当前没有待执行的接送或送餐站点。
-          </div>
-        `;
+    function openMemberEdit(memberId) {
+      editingMemberId = editingMemberId === memberId ? null : memberId;
+      renderMembersList();
+    }
+
+    function cancelMemberEdit() {
+      editingMemberId = null;
+      renderMembersList();
+    }
+
+    async function saveMemberEdit(e, memberId) {
+      e.preventDefault();
+      if (!state) return;
+
+      const nameInput = document.getElementById('editMemberName_' + memberId);
+      const phoneInput = document.getElementById('editMemberPhone_' + memberId);
+      const addressInput = document.getElementById('editMemberAddress_' + memberId);
+      const specialInput = document.getElementById('editMemberSpecial_' + memberId);
+      const notesInput = document.getElementById('editMemberNotes_' + memberId);
+      const noPickupInput = document.getElementById('editMemberNoPickup_' + memberId);
+
+      const nameVal = nameInput ? nameInput.value.trim() : '';
+      const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+      const addressVal = addressInput ? addressInput.value.trim() : '';
+      const specialVal = specialInput ? specialInput.value.trim() : '';
+      const notesVal = notesInput ? notesInput.value.trim() : '';
+      const noPickupVal = Boolean(noPickupInput && noPickupInput.checked);
+
+      if (!nameVal || !addressVal) {
+        showToast('长者姓名和地址不能为空');
         return;
       }
 
-      stopsContainer.innerHTML = stops.map((stop, idx) => {
-        const m = memberMap.get(stop.memberId) || {
-          id: stop.memberId,
-          name: '未知长者',
-          phone: '',
-          address: '',
-          specialNeeds: '',
-          notes: ''
-        };
-        const memberId = m.id || stop.memberId;
-        const isEditing = editingMemberId === memberId;
-        const allDone = Boolean(stop.pickedUp && stop.mealDelivered);
-        const timeText = stop.updatedAt ? `最近确认：${formatTime(stop.updatedAt)}` : '尚未确认';
-        const callUrl = buildCallUrl(m.phone);
-        const navUrl = buildMapUrl(m.address);
+      const idx = state.members.findIndex(m => m.id === memberId);
+      if (idx === -1) return;
 
+      state.members[idx] = Object.assign({}, state.members[idx], {
+        name: nameVal,
+        phone: phoneVal,
+        address: addressVal,
+        specialNeeds: specialVal,
+        notes: notesVal,
+        noPickup: noPickupVal
+      });
+
+      editingMemberId = null;
+      await saveCloudState();
+      renderAll();
+      showToast('长者信息已保存并同步至司机端');
+    }
+
+    async function deleteMember(memberId) {
+      if (!state) return;
+      state.members = state.members.filter(m => m.id !== memberId);
+      state.routes.forEach(r => {
+        if (Array.isArray(r.stops)) {
+          r.stops = r.stops.filter(s => s.memberId !== memberId);
+        }
+      });
+      if (editingMemberId === memberId) editingMemberId = null;
+      await saveCloudState();
+      renderAll();
+      showToast('已删除长者档案');
+    }
+
+    function getActiveRoute() {
+      if (!state || !Array.isArray(state.routes) || !state.routes.length) return null;
+      if (!activeRouteId || !state.routes.some(r => r.id === activeRouteId)) {
+        activeRouteId = state.routes[0].id;
+      }
+      return state.routes.find(r => r.id === activeRouteId) || state.routes[0];
+    }
+
+    function selectRoute(routeId) {
+      activeRouteId = routeId;
+      renderAll();
+    }
+
+    async function updateRouteMeta(field, value) {
+      const route = getActiveRoute();
+      if (!route) return;
+      route[field] = value;
+      await saveCloudState();
+      renderAll();
+      showToast('已更新线路排班');
+    }
+
+    async function addStopToActiveRoute() {
+      const route = getActiveRoute();
+      if (!route) return;
+      const memberId = document.getElementById('assignMemberSelect').value;
+      if (!memberId) {
+        showToast('请先选择长者');
+        return;
+      }
+      route.stops.push({
+        memberId,
+        pickedUp: false,
+        mealDelivered: false,
+        updatedAt: ''
+      });
+      await saveCloudState();
+      renderAll();
+      showToast('已加入当前线路站点');
+    }
+
+    async function removeStopFromRoute(stopIndex) {
+      const route = getActiveRoute();
+      if (!route || !route.stops[stopIndex]) return;
+      route.stops.splice(stopIndex, 1);
+      await saveCloudState();
+      renderAll();
+      showToast('已移除站点');
+    }
+
+    async function moveStop(stopIndex, delta) {
+      const route = getActiveRoute();
+      if (!route || !Array.isArray(route.stops)) return;
+      const targetIndex = stopIndex + delta;
+      if (targetIndex < 0 || targetIndex >= route.stops.length) return;
+      const temp = route.stops[stopIndex];
+      route.stops[stopIndex] = route.stops[targetIndex];
+      route.stops[targetIndex] = temp;
+      await saveCloudState();
+      renderAll();
+    }
+
+    function renderMembersList() {
+      const container = document.getElementById('membersList');
+      const badge = document.getElementById('memberCountBadge');
+      if (!state || !container) return;
+
+      const q = (document.getElementById('memberSearchInput')?.value || '').trim().toLowerCase();
+      const filtered = state.members.filter(m => {
+        if (!q) return true;
+        return [m.name, m.phone, m.address, m.specialNeeds, m.notes]
+          .filter(Boolean)
+          .some(v => String(v).toLowerCase().includes(q));
+      });
+
+      if (badge) badge.textContent = `${filtered.length} / ${state.members.length} 人`;
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="sub" style="text-align:center;padding:16px 0;">暂无匹配的长者档案</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(m => {
+        const isEditing = editingMemberId === m.id;
         const editFormHtml = isEditing ? `
-          <form class="edit-box" onsubmit="saveMemberEdit(event, '${escapeHtml(memberId)}')">
-            <div class="edit-box-title">编辑「${escapeHtml(m.name)}」资料</div>
-            <div class="form-group">
-              <label for="editPhone_${escapeHtml(memberId)}">联系电话</label>
-              <input class="input" id="editPhone_${escapeHtml(memberId)}" value="${escapeHtml(m.phone || '')}" placeholder="例如：713-555-0199" />
+          <form class="edit-box" onsubmit="saveMemberEdit(event, '${escapeHtml(m.id)}')">
+            <div class="edit-title">编辑长者信息</div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="editMemberName_${escapeHtml(m.id)}">姓名 *</label>
+                <input class="input" id="editMemberName_${escapeHtml(m.id)}" value="${escapeHtml(m.name || '')}" required />
+              </div>
+              <div class="form-group">
+                <label for="editMemberPhone_${escapeHtml(m.id)}">联系电话</label>
+                <input class="input" id="editMemberPhone_${escapeHtml(m.id)}" value="${escapeHtml(m.phone || '')}" placeholder="例如：713-555-0123" />
+              </div>
             </div>
             <div class="form-group">
-              <label for="editAddress_${escapeHtml(memberId)}">接送 / 送餐地址 *</label>
-              <input class="input" id="editAddress_${escapeHtml(memberId)}" value="${escapeHtml(m.address || '')}" required placeholder="请输入详细地址" />
+              <label for="editMemberAddress_${escapeHtml(m.id)}">接送 / 送餐地址 *</label>
+              <input class="input" id="editMemberAddress_${escapeHtml(m.id)}" value="${escapeHtml(m.address || '')}" required />
             </div>
-            <div class="form-group">
-              <label for="editSpecial_${escapeHtml(memberId)}">特殊需要（如轮椅、需送上门）</label>
-              <input class="input" id="editSpecial_${escapeHtml(memberId)}" value="${escapeHtml(m.specialNeeds || '')}" placeholder="例如：轮椅、需送上门" />
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="editMemberSpecial_${escapeHtml(m.id)}">特殊需要</label>
+                <input class="input" id="editMemberSpecial_${escapeHtml(m.id)}" value="${escapeHtml(m.specialNeeds || '')}" placeholder="例如：轮椅、需送上门" />
+              </div>
+              <div class="form-group">
+                <label for="editMemberNotes_${escapeHtml(m.id)}">备注说明</label>
+                <input class="input" id="editMemberNotes_${escapeHtml(m.id)}" value="${escapeHtml(m.notes || '')}" />
+              </div>
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label for="editNotes_${escapeHtml(memberId)}">备注说明</label>
-              <input class="input" id="editNotes_${escapeHtml(memberId)}" value="${escapeHtml(m.notes || '')}" placeholder="例如：先电话联系家属" />
+            <div class="form-group" style="margin-bottom:8px;">
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;">
+                <input type="checkbox" id="editMemberNoPickup_${escapeHtml(m.id)}" ${m.noPickup ? 'checked' : ''} />
+                仅送餐（不接送）
+              </label>
             </div>
-            <div class="edit-actions">
-              <button type="submit" class="btn btn-primary" style="flex:1;">保存修改</button>
-              <button type="button" class="btn" onclick="cancelMemberEdit()">取消</button>
+            <div style="display:flex;gap:8px;">
+              <button type="submit" class="btn btn-primary btn-sm">保存修改</button>
+              <button type="button" class="btn btn-sm" onclick="cancelMemberEdit()">取消</button>
             </div>
           </form>
         ` : '';
 
         return `
-          <article class="stop-card ${allDone ? 'done-all' : ''}">
-            <div class="stop-header">
-              <div class="stop-name">${escapeHtml(m.name)}</div>
-              <div class="stop-header-right">
-                <button
-                  type="button"
-                  class="btn btn-edit"
-                  onclick="openMemberEdit('${escapeHtml(memberId)}')"
-                >
+          <div class="member-card">
+            <div class="member-header">
+              <div>
+                <span class="member-name">${escapeHtml(m.name)}</span>
+                ${m.specialNeeds ? `<span class="tag tag-need" style="margin-left:6px;">特殊需要：${escapeHtml(m.specialNeeds)}</span>` : ''}
+                ${m.noPickup ? `<span class="tag tag-nopickup" style="margin-left:6px;">仅送餐</span>` : ''}
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button type="button" class="btn btn-sm" onclick="openMemberEdit('${escapeHtml(m.id)}')">
                   ${isEditing ? '收起编辑' : '编辑'}
                 </button>
-                <span class="seq-badge">第 ${idx + 1} 站</span>
+                <button type="button" class="btn btn-sm btn-danger-soft" onclick="deleteMember('${escapeHtml(m.id)}')">删除</button>
               </div>
             </div>
-
-            ${m.specialNeeds ? `<div class="special-need">特殊需要：${escapeHtml(m.specialNeeds)}</div>` : ''}
-
-            <div class="info-line"><strong>地址：</strong>${escapeHtml(m.address || '无地址')}</div>
-            <div class="info-line"><strong>电话：</strong>${escapeHtml(m.phone || '无电话')}</div>
-            ${m.notes ? `<div class="info-line"><strong>备注：</strong>${escapeHtml(m.notes)}</div>` : ''}
-
-            ${editFormHtml}
-
-            <div class="action-grid">
-              <a
-                class="btn btn-call ${callUrl ? '' : 'btn-disabled'}"
-                href="${callUrl || 'javascript:void(0)'}"
-              >
-                一键呼叫
-              </a>
-
-              <a
-                class="btn btn-nav ${m.address ? '' : 'btn-disabled'}"
-                href="${m.address ? navUrl : 'javascript:void(0)'}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                一键导航
-              </a>
-
-              <button
-                type="button"
-                class="btn ${stop.pickedUp ? 'btn-soft-done' : 'btn-primary'}"
-                onclick="toggleStopStatus('${escapeHtml(route.id)}', ${idx}, 'pickedUp')"
-              >
-                ${stop.pickedUp ? '✓ 确认已接送（已确认）' : '确认已接送'}
-              </button>
-
-              <button
-                type="button"
-                class="btn ${stop.mealDelivered ? 'btn-soft-done' : 'btn-success'}"
-                onclick="toggleStopStatus('${escapeHtml(route.id)}', ${idx}, 'mealDelivered')"
-              >
-                ${stop.mealDelivered ? '✓ 餐食已送达（已确认）' : '餐食已送达'}
-              </button>
+            <div class="member-meta">
+              <div><strong>电话：</strong>${escapeHtml(m.phone || '无电话')}</div>
+              <div><strong>地址：</strong>${escapeHtml(m.address || '无地址')}</div>
+              ${m.notes ? `<div><strong>备注：</strong>${escapeHtml(m.notes)}</div>` : ''}
             </div>
-
-            <div class="updated-note">${escapeHtml(timeText)}</div>
-          </article>
+            ${editFormHtml}
+          </div>
         `;
       }).join('');
     }
 
-    document.getElementById('driverLoginForm').addEventListener('submit', async function (e) {
+    function renderRoutePanel() {
+      const route = getActiveRoute();
+      const tabsEl = document.getElementById('routeTabs');
+      const editorEl = document.getElementById('routeEditor');
+      const stopsEl = document.getElementById('routeStopsList');
+      const stopCountBadge = document.getElementById('routeStopCount');
+      const selectEl = document.getElementById('assignMemberSelect');
+
+      if (!state || !route) return;
+
+      tabsEl.innerHTML = state.routes.map(r => `
+        <button
+          type="button"
+          class="route-tab ${r.id === route.id ? 'active' : ''}"
+          onclick="selectRoute('${escapeHtml(r.id)}')"
+        >
+          ${escapeHtml(r.lineName)}（${escapeHtml(r.vehicleNo || '未定车')}）
+        </button>
+      `).join('');
+
+      const driverOptions = `<option value="">未指派司机</option>` + state.drivers.map(d => {
+        const cleanName = stripParentheses(d.name) || d.name;
+        return `<option value="${escapeHtml(d.id)}" ${d.id === route.assignedDriverId ? 'selected' : ''}>${escapeHtml(cleanName)}</option>`;
+      }).join('');
+
+      const vehicleOptions = `<option value="">未指定车辆</option>` + state.vehicles.map(v =>
+        `<option value="${escapeHtml(v)}" ${v === route.vehicleNo ? 'selected' : ''}>${escapeHtml(v)}</option>`
+      ).join('');
+
+      editorEl.innerHTML = `
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="routeDriverSelect">指派执勤司机</label>
+            <select class="select" id="routeDriverSelect" onchange="updateRouteMeta('assignedDriverId', this.value)">
+              ${driverOptions}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="routeVehicleSelect">指派车辆</label>
+            <select class="select" id="routeVehicleSelect" onchange="updateRouteMeta('vehicleNo', this.value)">
+              ${vehicleOptions}
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="routeDateInput">发车日期</label>
+            <input class="input" type="date" id="routeDateInput" value="${escapeHtml(route.dispatchDate || '')}" onchange="updateRouteMeta('dispatchDate', this.value)" />
+          </div>
+          <div class="form-group">
+            <label for="routeTimeInput">发车时间</label>
+            <input class="input" type="time" id="routeTimeInput" value="${escapeHtml(route.departureTime || '08:00')}" onchange="updateRouteMeta('departureTime', this.value)" />
+          </div>
+        </div>
+      `;
+
+      selectEl.innerHTML = state.members.length
+        ? state.members.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)}${m.specialNeeds ? `（${escapeHtml(m.specialNeeds)}）` : ''}</option>`).join('')
+        : `<option value="">请先添加长者档案</option>`;
+
+      const memberMap = new Map(state.members.map(m => [m.id, m]));
+      const stops = route.stops || [];
+      stopCountBadge.textContent = `共 ${stops.length} 站`;
+
+      if (!stops.length) {
+        stopsEl.innerHTML = `<div class="sub" style="text-align:center;padding:16px 0;">当前线路暂无站点，可从上方选择长者加入。</div>`;
+        return;
+      }
+
+      stopsEl.innerHTML = stops.map((stop, idx) => {
+        const m = memberMap.get(stop.memberId) || {
+          name: '未知长者',
+          phone: '',
+          address: '',
+          specialNeeds: ''
+        };
+        return `
+          <div class="stop-item">
+            <div>
+              <div style="font-weight:800;font-size:14.5px;">
+                第 ${idx + 1} 站 · ${escapeHtml(m.name)}
+                ${m.specialNeeds ? `<span class="tag tag-need" style="margin-left:6px;">${escapeHtml(m.specialNeeds)}</span>` : ''}
+              </div>
+              <div class="sub">${escapeHtml(m.address || '无地址')} ｜ 电话：${escapeHtml(m.phone || '无电话')}</div>
+              <div>
+                <span class="status-pill ${stop.pickedUp ? 'pill-done' : 'pill-pending'}">${stop.pickedUp ? '✓ 已接送' : '未接送'}</span>
+                <span class="status-pill ${stop.mealDelivered ? 'pill-done' : 'pill-pending'}">${stop.mealDelivered ? '✓ 已送餐' : '未送餐'}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm" onclick="moveStop(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>上移</button>
+              <button type="button" class="btn btn-sm" onclick="moveStop(${idx}, 1)" ${idx === stops.length - 1 ? 'disabled' : ''}>下移</button>
+              <button type="button" class="btn btn-sm btn-danger-soft" onclick="removeStopFromRoute(${idx})">移除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAll() {
+      if (!state) return;
+      document.getElementById('syncInfo').textContent =
+        `最近同步：${state.updatedAt ? new Date(state.updatedAt).toLocaleTimeString('zh-CN', { hour12: false }) : '刚刚'} · Firebase 云端实时同步`;
+      renderMembersList();
+      renderRoutePanel();
+    }
+
+    document.getElementById('dispatcherLoginForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const errEl = document.getElementById('authErrorText');
       const btn = document.getElementById('loginSubmitBtn');
@@ -856,7 +903,7 @@ driver_html = """<!DOCTYPE html>
         errEl.textContent = '登录失败：请检查邮箱或密码是否正确（' + (err && err.code ? err.code : '认证错误') + '）。';
       } finally {
         btn.disabled = false;
-        btn.textContent = '登录司机端';
+        btn.textContent = '登录调度员端';
       }
     });
 
@@ -882,11 +929,14 @@ driver_html = """<!DOCTYPE html>
               const val = snap.val();
               if (!val) return;
               state = normalizeState(val);
+              if (editingMemberId && !state.members.some(m => m.id === editingMemberId)) {
+                editingMemberId = null;
+              }
               renderAll();
             });
           }
         } catch (err) {
-          showToast('读取云端任务失败，请检查数据库规则');
+          showToast('读取云端数据失败，请检查数据库规则');
         }
       });
     })();
@@ -895,7 +945,7 @@ driver_html = """<!DOCTYPE html>
 </html>
 """
 
-with open("driver_editable_stop.html", "w", encoding="utf-8") as f:
-    f.write(driver_html.strip() + "\n")
+with open("dispatcher_editable_member.html", "w", encoding="utf-8") as f:
+    f.write(dispatcher_html.strip() + "\n")
 
-print("Generated driver_editable_stop.html")
+print("Generated dispatcher_editable_member.html")
