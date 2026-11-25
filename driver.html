@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>司机端 · 当前待出车订单</title>
+  <title>司机端 · 接送与送餐确认</title>
   <style>
     :root {
       --bg: #f3f5f8;
@@ -12,9 +12,6 @@
       --muted: #6b7280;
       --primary: #1d4ed8;
       --primary-soft: #eff6ff;
-      --amber: #b45309;
-      --amber-soft: #fffbeb;
-      --amber-border: #fcd34d;
       --border: #e5e7eb;
       --success: #047857;
       --success-soft: #ecfdf5;
@@ -25,7 +22,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-bottom: 44px;
+      padding-bottom: 36px;
     }
     .auth-overlay {
       min-height: 100vh;
@@ -77,7 +74,7 @@
       padding: 14px;
       margin-bottom: 14px;
     }
-    .input {
+    .input, .select {
       width: 100%;
       padding: 10px 12px;
       border: 1.5px solid #cbd5e1;
@@ -110,39 +107,20 @@
     }
     .route-banner {
       background: var(--primary-soft);
-      border: 1.5px solid #bfdbfe;
-      border-radius: 14px;
-      padding: 14px;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 12px 14px;
       margin-bottom: 14px;
-    }
-    .route-banner.adhoc {
-      background: var(--amber-soft);
-      border-color: var(--amber-border);
-    }
-    .route-type-badge {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 800;
-      padding: 2px 9px;
-      border-radius: 999px;
-      background: #dbeafe;
-      color: var(--primary);
-      margin-bottom: 6px;
-    }
-    .route-banner.adhoc .route-type-badge {
-      background: #fef3c7;
-      color: var(--amber);
     }
     .route-banner-main {
       font-size: 18px;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--primary);
     }
     .route-banner-sub {
       font-size: 13px;
-      color: #374151;
-      margin-top: 5px;
-      line-height: 1.45;
+      color: #1e3a8a;
+      margin-top: 4px;
     }
     .schedule-highlight {
       margin-top: 8px;
@@ -151,9 +129,6 @@
       font-size: 14px;
       font-weight: 700;
       color: #0f172a;
-    }
-    .route-banner.adhoc .schedule-highlight {
-      border-top-color: var(--amber-border);
     }
     .stop-card {
       background: #fff;
@@ -219,22 +194,6 @@
       border-color: #10b981;
       color: var(--success);
     }
-    .finish-order-btn {
-      width: 100%;
-      padding: 15px 14px;
-      border-radius: 13px;
-      border: none;
-      background: #047857;
-      color: #fff;
-      font-size: 17px;
-      font-weight: 800;
-      cursor: pointer;
-      margin-top: 8px;
-      box-shadow: 0 6px 16px rgba(4, 120, 87, 0.22);
-    }
-    .finish-order-btn:active {
-      transform: scale(0.99);
-    }
     .error-text {
       color: #b91c1c;
       font-size: 13px;
@@ -265,12 +224,12 @@
     <div class="auth-card">
       <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;">司机端登录</h2>
       <p style="margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.5;">
-        请使用您的邮箱与密码登录，登录后仅显示分配给您本人的当前最新待出车订单。
+        请使用已授权的邮箱与密码登录，查看线路、发车时间与站点任务。
       </p>
       <form id="driverAuthForm">
         <div class="form-group">
           <label for="dEmail">登录邮箱</label>
-          <input class="input" type="email" id="dEmail" required autocomplete="username" placeholder="driver1@example.com" />
+          <input class="input" type="email" id="dEmail" required autocomplete="username" placeholder="driver@example.com" />
         </div>
         <div class="form-group">
           <label for="dPassword">登录密码</label>
@@ -285,7 +244,7 @@
   <div id="driverAppShell" style="display:none;">
     <header class="topbar">
       <div>
-        <div class="topbar-title">司机端 · 当前出车单</div>
+        <div class="topbar-title">司机端任务清单</div>
         <div class="topbar-sub" id="driverSubInfo">已登录</div>
       </div>
       <div style="display:flex;gap:6px;">
@@ -295,6 +254,13 @@
     </header>
 
     <div class="container">
+      <div class="card" style="padding:10px 12px;">
+        <label for="driverSelect" style="display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:4px;">
+          当前执勤司机身份
+        </label>
+        <select class="select" id="driverSelect"></select>
+      </div>
+
       <div id="taskWorkspace"></div>
     </div>
   </div>
@@ -307,14 +273,14 @@
   <script src="./firebase-config.js"></script>
   <script>
     const DB_ROOT_PATH = 'fleetDispatchState';
+    const DRIVER_PICK_KEY = 'fleet_driver_selected_id_v1';
 
     let auth = null;
     let db = null;
     let dbRef = null;
     let state = null;
     let currentUser = null;
-    let currentDriver = null;
-    let currentOrder = null;
+    let selectedDriverId = '';
     let isSubscribed = false;
     let toastTimer = null;
 
@@ -337,47 +303,39 @@
       el.textContent = msg;
       el.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
-    }
-
-    function getDateStrByOffset(offsetDays = 0) {
-      const now = new Date();
-      now.setDate(now.getDate() + offsetDays);
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    function getTodayDateStr() {
-      return getDateStrByOffset(0);
-    }
-
-    function getTomorrowDateStr() {
-      return getDateStrByOffset(1);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
     }
 
     function ensureFirebaseReady() {
       if (auth && db) return true;
+
       const fs = window.FleetSync || {};
       const rawCfg =
         window.FIREBASE_CONFIG ||
         fs.FIREBASE_CONFIG ||
+        fs.firebaseConfig ||
+        fs.config ||
         (firebase.apps.length && firebase.app().options) ||
         {};
+
       const cfg = {
         apiKey: rawCfg.apiKey,
         authDomain: rawCfg.authDomain || 'fleet-dispatch-tx.firebaseapp.com',
-        databaseURL: rawCfg.databaseURL || 'https://fleet-dispatch-tx-default-rtdb.firebaseio.com',
+        databaseURL:
+          rawCfg.databaseURL ||
+          'https://fleet-dispatch-tx-default-rtdb.firebaseio.com',
         projectId: rawCfg.projectId || 'fleet-dispatch-tx',
         storageBucket: rawCfg.storageBucket,
         messagingSenderId: rawCfg.messagingSenderId,
         appId: rawCfg.appId
       };
-      if (!cfg.apiKey) {
-        document.getElementById('dAuthError').textContent = '未检测到 Firebase apiKey，请检查 firebase-config.js。';
+
+      if (!cfg.apiKey || cfg.apiKey === 'YOUR_FIREBASE_API_KEY') {
+        document.getElementById('dAuthError').textContent =
+          '未检测到有效的 Firebase apiKey，请先在 firebase-config.js 中填入真实配置。';
         return false;
       }
+
       if (!firebase.apps.length) {
         firebase.initializeApp(cfg);
       }
@@ -387,172 +345,37 @@
       return true;
     }
 
-    function normalizeState(raw) {
-      const todayStr = getTodayDateStr();
-      const next = Object.assign({
-        vehicles: [],
-        drivers: [],
-        members: [],
-        regularRoutes: [],
-        adhocRoutes: [],
-        tripRecords: []
-      }, raw || {});
+    function getTodayDateStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
 
+    function normalizeState(raw) {
+      const next = Object.assign({ drivers: [], members: [], routes: [] }, raw || {});
       next.drivers = Array.isArray(next.drivers) ? next.drivers : [];
       next.members = Array.isArray(next.members) ? next.members : [];
-      next.adhocRoutes = Array.isArray(next.adhocRoutes) ? next.adhocRoutes : [];
-      next.tripRecords = Array.isArray(next.tripRecords) ? next.tripRecords : [];
-
-      const rawReg = Array.isArray(next.regularRoutes) && next.regularRoutes.length
-        ? next.regularRoutes
-        : (Array.isArray(next.routes) ? next.routes : []);
-
-      next.regularRoutes = rawReg.map((r, idx) => ({
-        id: r.id || `reg-${idx + 1}`,
-        lineName: r.lineName || `${idx + 1}号线`,
-        vehicleNo: r.vehicleNo || '',
-        assignedDriverId: r.assignedDriverId || '',
-        dispatchDate: r.dispatchDate || todayStr,
-        morningTime: r.morningTime || r.departureTime || '08:00',
-        afternoonTime: r.afternoonTime || '16:00',
-        legStage: r.legStage === 'afternoon' ? 'afternoon' : 'morning',
-        startedAt: r.startedAt || '',
-        collapsed: r.collapsed === undefined ? true : Boolean(r.collapsed),
-        stops: Array.isArray(r.stops) ? r.stops : []
-      }));
-
-      return next;
-    }
-
-    function resolveLoggedInDriver() {
-      const email = String(currentUser?.email || '').trim().toLowerCase();
-      if (!email || !state?.drivers?.length) return null;
-      return state.drivers.find(d => String(d.email || '').trim().toLowerCase() === email) || null;
-    }
-
-    /**
-     * 核心流转判定：严格只返回当前司机“最新一条应出车订单”
-     * 1. 若有未完成临时单且处于“下午送”之前（或尚未结束临时单），优先只显示临时单（不显示下午送）；
-     * 2. 否则按常规单推进：先看今日“上午接”（绝不提前展示明天的常规单）；
-     * 3. 今日“上午接”结束后，刷新/再登录显示今日“下午送”；
-     * 4. 今日“下午送”结束后，自动更新为明日日期与早上发车时间，此时可显示明日“上午接”。
-     */
-    function pickCurrentOrderForDriver(driverId) {
-      const todayStr = getTodayDateStr();
-      const tomorrowStr = getTomorrowDateStr();
-      const memberMap = new Map((state.members || []).map(m => [m.id, m]));
-
-      const myRegulars = (state.regularRoutes || []).filter(r => r.assignedDriverId === driverId);
-      const myActiveAdhoc = (state.adhocRoutes || []).filter(
-        a => a.assignedDriverId === driverId && a.status !== 'completed'
-      );
-
-      // 查找是否存在今日“下午送”常规单
-      const todayAfternoonRegular = myRegulars.find(
-        r => r.legStage === 'afternoon' && r.dispatchDate === todayStr
-      );
-
-      // 若存在未完成临时单，且尚未进入“下午送”或临时单早于下午送时间，则独占显示最新一条临时单
-      if (myActiveAdhoc.length > 0) {
-        const latestAdhoc = myActiveAdhoc[myActiveAdhoc.length - 1];
-        const adhocBeforeAfternoon = !todayAfternoonRegular ||
-          !latestAdhoc.departureTime ||
-          !todayAfternoonRegular.afternoonTime ||
-          latestAdhoc.departureTime <= todayAfternoonRegular.afternoonTime;
-
-        if (adhocBeforeAfternoon) {
-          const stops = (latestAdhoc.passengers || []).map((p, idx) => ({
-            index: idx,
-            name: p.name,
-            phone: p.phone,
-            address: latestAdhoc.destinationAddress || '',
-            specialNeeds: '',
-            notes: '',
-            pickedUp: Boolean(p.pickedUp),
-            mealDelivered: Boolean(p.mealDelivered),
-            updatedAt: p.updatedAt || ''
-          }));
-          return {
-            kind: 'adhoc',
-            id: latestAdhoc.id,
-            badgeText: '临时路线 · 最新出车',
-            isAdhoc: true,
-            routeName: latestAdhoc.routeName,
-            vehicleNo: latestAdhoc.vehicleNo || '未指定车辆',
-            dispatchDate: latestAdhoc.dispatchDate || todayStr,
-            departureTime: latestAdhoc.departureTime || '10:00',
-            destinationName: latestAdhoc.destinationName || '',
-            destinationAddress: latestAdhoc.destinationAddress || '',
-            startedAt: latestAdhoc.startedAt || new Date().toISOString(),
-            stops
-          };
-        }
-      }
-
-      // 常规单推进：优先今日“上午接”
-      const todayMorning = myRegulars.find(
-        r => r.legStage === 'morning' && r.dispatchDate === todayStr
-      );
-      if (todayMorning) {
-        return buildRegularOrderPayload(todayMorning, 'morning', '今日上午接', memberMap);
-      }
-
-      // 其次今日“下午送”
-      if (todayAfternoonRegular) {
-        return buildRegularOrderPayload(todayAfternoonRegular, 'afternoon', '今日下午送', memberMap);
-      }
-
-      // 当日“下午送”结束后，调度端已自动更新为明日日期与早上发车时间，此时显示明日“上午接”
-      const tomorrowMorning = myRegulars.find(
-        r => r.dispatchDate === tomorrowStr
-      );
-      if (tomorrowMorning) {
-        return buildRegularOrderPayload(tomorrowMorning, 'tomorrow_morning', '明日上午接', memberMap);
-      }
-
-      return null;
-    }
-
-    function buildRegularOrderPayload(route, legStage, badgeText, memberMap) {
-      const departureTime = legStage === 'afternoon'
-        ? (route.afternoonTime || '16:00')
-        : (route.morningTime || '08:00');
-
-      const stops = (route.stops || []).map((st, idx) => {
-        const m = memberMap.get(st.memberId) || {};
-        return {
-          index: idx,
-          name: m.name || '未知人员',
-          phone: m.phone || '',
-          address: m.address || '',
-          specialNeeds: m.specialNeeds || '',
-          notes: m.notes || '',
-          pickedUp: Boolean(st.pickedUp),
-          mealDelivered: Boolean(st.mealDelivered),
-          updatedAt: st.updatedAt || ''
-        };
+      next.routes = Array.isArray(next.routes) ? next.routes : [];
+      const defaultDate = getTodayDateStr();
+      next.routes.forEach(r => {
+        if (!r.dispatchDate) r.dispatchDate = defaultDate;
+        if (!r.departureTime) r.departureTime = '08:00';
+        if (!Array.isArray(r.stops)) r.stops = [];
       });
-
-      return {
-        kind: 'regular',
-        legStage,
-        id: route.id,
-        badgeText,
-        isAdhoc: false,
-        routeName: route.lineName,
-        vehicleNo: route.vehicleNo || '未指定车辆',
-        dispatchDate: route.dispatchDate,
-        departureTime,
-        destinationName: '常规接送/送餐线路',
-        destinationAddress: stops[0]?.address || '',
-        startedAt: route.startedAt || new Date().toISOString(),
-        stops
-      };
+      return next;
     }
 
     function formatShortTime(iso) {
       if (!iso) return '';
       return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    function formatScheduleDisplay(route) {
+      const dateStr = (route && route.dispatchDate) || getTodayDateStr();
+      const timeStr = (route && route.departureTime) || '08:00';
+      return `${dateStr} · 发车时间 ${timeStr}`;
     }
 
     function buildTelHref(phone) {
@@ -579,160 +402,112 @@
       if (msg) showToast(msg);
     }
 
-    async function toggleStopFlag(stopIndex, field) {
-      if (!currentOrder) return;
-      const nowIso = new Date().toISOString();
-      if (currentOrder.kind === 'adhoc') {
-        const adhoc = state.adhocRoutes.find(a => a.id === currentOrder.id);
-        if (!adhoc || !adhoc.passengers?.[stopIndex]) return;
-        if (!adhoc.startedAt) adhoc.startedAt = nowIso;
-        adhoc.passengers[stopIndex][field] = !adhoc.passengers[stopIndex][field];
-        adhoc.passengers[stopIndex].updatedAt = nowIso;
-      } else {
-        const reg = state.regularRoutes.find(r => r.id === currentOrder.id);
-        if (!reg || !reg.stops?.[stopIndex]) return;
-        if (!reg.startedAt) reg.startedAt = nowIso;
-        reg.stops[stopIndex][field] = !reg.stops[stopIndex][field];
-        reg.stops[stopIndex].updatedAt = nowIso;
-      }
-      await saveCloudState('状态已同步');
-    }
-
-    /**
-     * 点击“结束此单”：
-     * 1. 记录发车时间、接送人员姓名、完成时间存入 tripRecords；
-     * 2. 移除当前单并推进状态（上午接 -> 下午送；下午送 -> 明日上午接）。
-     */
-    async function finishCurrentOrder() {
-      if (!currentOrder || !currentDriver) return;
-      if (!confirm(`确定结束「${currentOrder.routeName}（${currentOrder.badgeText}）」吗？结束将记录发车时间、接送人员与完成时间。`)) {
+    function syncDriverSelector() {
+      const select = document.getElementById('driverSelect');
+      const drivers = (state && state.drivers) || [];
+      if (!drivers.length) {
+        select.innerHTML = `<option value="">暂无司机档案</option>`;
+        selectedDriverId = '';
         return;
       }
 
-      const completedAt = new Date().toISOString();
-      const startedAt = currentOrder.startedAt || completedAt;
-      const passengerNames = (currentOrder.stops || []).map(s => s.name).filter(Boolean);
-
-      state.tripRecords = state.tripRecords || [];
-      state.tripRecords.push({
-        recordId: 'rec-' + Date.now(),
-        categoryLabel: currentOrder.badgeText,
-        routeName: currentOrder.routeName,
-        driverId: currentDriver.id,
-        driverName: currentDriver.name,
-        vehicleNo: currentOrder.vehicleNo || '',
-        destination: currentOrder.destinationAddress
-          ? `${currentOrder.destinationName}（${currentOrder.destinationAddress}）`
-          : currentOrder.destinationName,
-        passengerNames,
-        startedAt,
-        completedAt
-      });
-
-      if (currentOrder.kind === 'adhoc') {
-        const adhoc = state.adhocRoutes.find(a => a.id === currentOrder.id);
-        if (adhoc) adhoc.status = 'completed';
-      } else {
-        const reg = state.regularRoutes.find(r => r.id === currentOrder.id);
-        if (reg) {
-          if (currentOrder.legStage === 'morning') {
-            // 今日上午接结束 -> 推进为今日下午送
-            reg.legStage = 'afternoon';
-            reg.startedAt = '';
-            (reg.stops || []).forEach(s => {
-              s.pickedUp = false;
-              s.mealDelivered = false;
-              s.updatedAt = '';
-            });
-          } else {
-            // 今日下午送结束 -> 推进为明日上午接（更新为明天日期与早上发车时间）
-            reg.dispatchDate = getTomorrowDateStr();
-            reg.legStage = 'morning';
-            reg.startedAt = '';
-            (reg.stops || []).forEach(s => {
-              s.pickedUp = false;
-              s.mealDelivered = false;
-              s.updatedAt = '';
-            });
-          }
-        }
+      if (!selectedDriverId) {
+        try {
+          selectedDriverId = sessionStorage.getItem(DRIVER_PICK_KEY) || '';
+        } catch (_) {}
+      }
+      if (!drivers.some(d => d.id === selectedDriverId)) {
+        selectedDriverId = drivers[0].id;
       }
 
-      await saveCloudState('此单已结束并存入记录');
+      select.innerHTML = drivers.map(d =>
+        `<option value="${escapeAttr(d.id)}" ${d.id === selectedDriverId ? 'selected' : ''}>${escapeHtml(d.name || '')}</option>`
+      ).join('');
+    }
+
+    async function toggleStopFlag(routeId, stopIndex, field) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route || !route.stops || !route.stops[stopIndex]) return;
+      const stop = route.stops[stopIndex];
+      stop[field] = !stop[field];
+      stop.updatedAt = new Date().toISOString();
+      await saveCloudState(field === 'pickedUp'
+        ? (stop.pickedUp ? '已确认接送' : '已取消接送确认')
+        : (stop.mealDelivered ? '已确认餐食送达' : '已取消送餐确认'));
     }
 
     function renderWorkspace() {
-      const workspace = document.getElementById('taskWorkspace');
       if (!state) return;
+      syncDriverSelector();
 
-      currentDriver = resolveLoggedInDriver();
+      const driver = (state.drivers || []).find(d => d.id === selectedDriverId) || null;
       document.getElementById('driverSubInfo').textContent =
-        (currentUser?.email || '已登录') + (currentDriver ? ` · ${currentDriver.name}` : ' · 未匹配司机档案');
+        (currentUser && currentUser.email ? currentUser.email : '已认证账号') +
+        (driver ? ` · ${driver.name}` : '');
 
-      if (!currentDriver) {
-        workspace.innerHTML = `
-          <div class="card" style="text-align:center;padding:24px 16px;">
-            <div style="font-size:16px;font-weight:700;margin-bottom:6px;">当前登录邮箱尚未绑定司机档案</div>
-            <div style="font-size:13px;color:var(--muted);">请联系调度员在“司机管理”中为 ${escapeHtml(currentUser?.email || '')} 绑定对应司机。</div>
-          </div>
-        `;
+      const workspace = document.getElementById('taskWorkspace');
+      if (!driver) {
+        workspace.innerHTML = `<div class="card" style="text-align:center;color:var(--muted);">请选择执勤司机或等待调度员配置</div>`;
         return;
       }
 
-      currentOrder = pickCurrentOrderForDriver(currentDriver.id);
-      if (!currentOrder) {
+      const assignedRoutes = (state.routes || []).filter(r => r.assignedDriverId === driver.id);
+      if (assignedRoutes.length === 0) {
         workspace.innerHTML = `
           <div class="card" style="text-align:center;padding:28px 16px;">
-            <div style="font-size:17px;font-weight:800;margin-bottom:6px;">当前暂无待出车订单</div>
-            <div style="font-size:13px;color:var(--muted);">调度员派发新订单后，可点右上角「刷新更新」。</div>
+            <div style="font-size:16px;font-weight:700;margin-bottom:6px;">当前暂未指派线路</div>
+            <div style="font-size:13px;color:var(--muted);">调度员指派线路与发车时间后，可点右上角「刷新更新」。</div>
           </div>
         `;
         return;
       }
 
-      const stopsHtml = currentOrder.stops.length === 0
-        ? `<div class="card" style="text-align:center;color:var(--muted);">当前订单暂无接送人员明细</div>`
-        : currentOrder.stops.map((st, idx) => {
-            const telHref = buildTelHref(st.phone);
-            const navHref = buildNavHref(st.address);
-            return `
-              <div class="stop-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span class="stop-title">#${idx + 1} ${escapeHtml(st.name)}</span>
-                  <span style="font-size:12px;color:var(--muted);">${st.updatedAt ? '更新 ' + escapeHtml(formatShortTime(st.updatedAt)) : ''}</span>
-                </div>
-                ${st.phone ? `<div class="stop-meta"><strong>电话：</strong>${escapeHtml(st.phone)}</div>` : ''}
-                ${st.address ? `<div class="stop-meta"><strong>地址：</strong>${escapeHtml(st.address)}</div>` : ''}
-                ${st.specialNeeds ? `<div class="tag">特殊需要：${escapeHtml(st.specialNeeds)}</div>` : ''}
-                ${st.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${escapeHtml(st.notes)}</div>` : ''}
+      const memberMap = new Map((state.members || []).map(m => [m.id, m]));
 
-                <div class="four-btn-grid">
-                  <a class="quick-btn call-btn ${telHref ? '' : 'disabled'}" href="${escapeAttr(telHref || '#')}">📞 一键呼叫</a>
-                  <a class="quick-btn ${navHref ? '' : 'disabled'}" href="${escapeAttr(navHref || '#')}" target="_blank" rel="noopener noreferrer">🧭 一键导航</a>
-                  <button type="button" class="action-btn ${st.pickedUp ? 'done' : ''}" data-action="toggle" data-stop-index="${idx}" data-field="pickedUp">
-                    ${st.pickedUp ? '✓ 已接送' : '确认已接送'}
-                  </button>
-                  <button type="button" class="action-btn ${st.mealDelivered ? 'done' : ''}" data-action="toggle" data-stop-index="${idx}" data-field="mealDelivered">
-                    ${st.mealDelivered ? '✓ 餐食已送达' : '餐食已送达'}
-                  </button>
-                </div>
-              </div>
-            `;
-          }).join('');
+      workspace.innerHTML = assignedRoutes.map(route => {
+        const stops = route.stops || [];
+        const stopsHtml = stops.length === 0
+          ? `<div class="card" style="text-align:center;color:var(--muted);">当前线路暂无接送或送餐站点</div>`
+          : stops.map((stop, idx) => {
+              const m = memberMap.get(stop.memberId);
+              if (!m) return '';
+              const telHref = buildTelHref(m.phone);
+              const navHref = buildNavHref(m.address);
 
-      workspace.innerHTML = `
-        <div class="route-banner ${currentOrder.isAdhoc ? 'adhoc' : ''}">
-          <span class="route-type-badge">${escapeHtml(currentOrder.badgeText)}</span>
-          <div class="route-banner-main">${escapeHtml(currentOrder.routeName)} · ${escapeHtml(currentOrder.vehicleNo)}</div>
-          <div class="route-banner-sub">执勤司机：${escapeHtml(currentDriver.name)} · 共 ${currentOrder.stops.length} 人</div>
-          ${currentOrder.isAdhoc
-            ? `<div class="route-banner-sub"><strong>目的地：</strong>${escapeHtml(currentOrder.destinationName)}（${escapeHtml(currentOrder.destinationAddress)}）</div>`
-            : ''}
-          <div class="schedule-highlight">📅 订单日期与发车时间：${escapeHtml(currentOrder.dispatchDate)} · ${escapeHtml(currentOrder.departureTime)}</div>
-        </div>
-        ${stopsHtml}
-        <button type="button" class="finish-order-btn" id="finishOrderBtn">✓ 结束此单</button>
-      `;
+              return `
+                <div class="stop-card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span class="stop-title">#${idx + 1} ${escapeHtml(m.name || '')}</span>
+                    <span style="font-size:12px;color:var(--muted);">${stop.updatedAt ? '更新 ' + escapeHtml(formatShortTime(stop.updatedAt)) : ''}</span>
+                  </div>
+                  <div class="stop-meta"><strong>地址：</strong>${escapeHtml(m.address || '-')}</div>
+                  <div class="stop-meta"><strong>电话：</strong>${escapeHtml(m.phone || '-')}</div>
+                  ${m.specialNeeds ? `<div class="tag">特殊需要：${escapeHtml(m.specialNeeds)}</div>` : ''}
+                  ${m.notes ? `<div class="stop-meta" style="color:#4b5563;"><strong>备注：</strong>${escapeHtml(m.notes)}</div>` : ''}
+
+                  <div class="four-btn-grid">
+                    <a class="quick-btn call-btn ${telHref ? '' : 'disabled'}" href="${escapeAttr(telHref || '#')}">📞 一键呼叫</a>
+                    <a class="quick-btn ${navHref ? '' : 'disabled'}" href="${escapeAttr(navHref || '#')}" target="_blank" rel="noopener noreferrer">🧭 一键导航</a>
+                    <button type="button" class="action-btn ${stop.pickedUp ? 'done' : ''}" data-action="toggle" data-route-id="${escapeAttr(route.id)}" data-stop-index="${idx}" data-field="pickedUp">
+                      ${stop.pickedUp ? '✓ 已接送' : '确认已接送'}
+                    </button>
+                    <button type="button" class="action-btn ${stop.mealDelivered ? 'done' : ''}" data-action="toggle" data-route-id="${escapeAttr(route.id)}" data-stop-index="${idx}" data-field="mealDelivered">
+                      ${stop.mealDelivered ? '✓ 餐食已送达' : '餐食已送达'}
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('');
+
+        return `
+          <div class="route-banner">
+            <div class="route-banner-main">${escapeHtml(route.lineName)} · ${escapeHtml(route.vehicleNo || '未指定车辆')}</div>
+            <div class="route-banner-sub">执勤司机：${escapeHtml(driver.name)} · 共 ${stops.length} 个站点</div>
+            <div class="schedule-highlight">📅 日期与发车时间：${escapeHtml(formatScheduleDisplay(route))}</div>
+          </div>
+          ${stopsHtml}
+        `;
+      }).join('');
     }
 
     document.getElementById('driverAuthForm').addEventListener('submit', async function (e) {
@@ -749,17 +524,25 @@
       try {
         await auth.signInWithEmailAndPassword(email, password);
       } catch (err) {
-        errEl.textContent = '登录失败：请检查邮箱或密码（' + (err?.code || '认证错误') + '）。';
+        errEl.textContent = '登录失败：请检查邮箱或密码是否正确（' + (err && err.code ? err.code : '认证错误') + '）。';
       } finally {
         btn.disabled = false;
         btn.textContent = '登录并查看任务';
       }
     });
 
+    document.getElementById('driverSelect').addEventListener('change', function (e) {
+      selectedDriverId = e.target.value;
+      try {
+        sessionStorage.setItem(DRIVER_PICK_KEY, selectedDriverId);
+      } catch (_) {}
+      renderWorkspace();
+    });
+
     document.getElementById('refreshBtn').addEventListener('click', async function () {
       state = await loadCloudState();
       renderWorkspace();
-      showToast('已刷新最新订单');
+      showToast('已刷新线路与发车时间');
     });
 
     document.getElementById('logoutBtn').addEventListener('click', async function () {
@@ -768,16 +551,12 @@
 
     document.getElementById('taskWorkspace').addEventListener('click', function (e) {
       const toggleBtn = e.target.closest('button[data-action="toggle"]');
-      if (toggleBtn) {
-        toggleStopFlag(
-          Number(toggleBtn.getAttribute('data-stop-index')),
-          toggleBtn.getAttribute('data-field')
-        );
-        return;
-      }
-      if (e.target.closest('#finishOrderBtn')) {
-        finishCurrentOrder();
-      }
+      if (!toggleBtn) return;
+      toggleStopFlag(
+        toggleBtn.getAttribute('data-route-id'),
+        Number(toggleBtn.getAttribute('data-stop-index')),
+        toggleBtn.getAttribute('data-field')
+      );
     });
 
     (function initAuthWatcher() {

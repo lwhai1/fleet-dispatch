@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>调度员端 · 常规路线与临时路线管理</title>
+  <title>调度员端 · 线路、车辆与司机指派管理</title>
   <style>
     :root {
       --bg: #f3f5f8;
@@ -12,9 +12,6 @@
       --muted: #6b7280;
       --primary: #1d4ed8;
       --primary-soft: #eff6ff;
-      --amber: #b45309;
-      --amber-soft: #fffbeb;
-      --amber-border: #fcd34d;
       --border: #e5e7eb;
       --success: #047857;
       --success-soft: #ecfdf5;
@@ -25,7 +22,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-bottom: 48px;
+      padding-bottom: 40px;
     }
     .auth-overlay {
       min-height: 100vh;
@@ -58,7 +55,7 @@
     .topbar h1 { margin: 0; font-size: 19px; }
     .topbar-meta { font-size: 13px; color: var(--muted); }
     .layout {
-      max-width: 1440px;
+      max-width: 1420px;
       margin: 18px auto;
       padding: 0 18px;
       display: grid;
@@ -74,20 +71,19 @@
       flex-direction: column;
       gap: 14px;
     }
-    .right-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
     @media (max-width: 980px) {
       .layout { grid-template-columns: 1fr; }
-      .left-sticky { position: static; max-height: none; }
+      .left-sticky {
+        position: static;
+        max-height: none;
+      }
     }
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 16px;
+      margin-bottom: 0;
     }
     .pool-panel {
       display: flex;
@@ -129,6 +125,14 @@
       align-items: center;
       gap: 8px;
     }
+    .toolbar-row label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
     .manager-box {
       background: #f9fafb;
       border: 1px solid #e5e7eb;
@@ -144,7 +148,7 @@
     }
     .manager-list-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 8px;
     }
     .manager-item {
@@ -153,7 +157,7 @@
       border-radius: 8px;
       padding: 7px 9px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       gap: 6px;
     }
     .form-group { margin-bottom: 10px; }
@@ -192,11 +196,6 @@
     .btn-primary {
       background: var(--primary);
       border-color: var(--primary);
-      color: #fff;
-    }
-    .btn-amber {
-      background: #d97706;
-      border-color: #d97706;
       color: #fff;
     }
     .btn-block {
@@ -277,75 +276,41 @@
       gap: 6px;
       flex-wrap: wrap;
     }
-    .regular-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .routes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 14px;
     }
-    .regular-item {
+    .route-card {
       border: 1.5px solid var(--border);
       border-radius: 12px;
+      padding: 12px;
       background: #fff;
-      overflow: hidden;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    .regular-item.drag-over {
+    .route-card.drag-over {
       border-color: var(--primary);
       background: var(--primary-soft);
     }
-    .regular-header {
-      padding: 10px 14px;
+    .route-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      background: #f9fafb;
-    }
-    .regular-title-btn {
-      background: transparent;
-      border: none;
-      padding: 0;
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--primary);
-      cursor: pointer;
-      text-align: left;
-    }
-    .regular-summary {
-      font-size: 12.5px;
-      color: #374151;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-    }
-    .stage-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11.5px;
-      font-weight: 700;
-      background: var(--primary-soft);
-      color: var(--primary);
-    }
-    .stage-pill.tomorrow {
-      background: var(--amber-soft);
-      color: var(--amber);
-      border: 1px solid var(--amber-border);
-    }
-    .regular-body {
-      padding: 12px 14px;
-      border-top: 1px solid #eef2f6;
-    }
-    .schedule-grid-3 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 8px;
       margin-bottom: 10px;
-      background: #f8fafc;
-      padding: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .route-name { font-size: 16px; font-weight: 800; color: var(--primary); }
+    .schedule-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+      background: #f9fafb;
+      padding: 8px;
       border-radius: 8px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #eef2f6;
     }
     .assign-controls {
       display: grid;
@@ -387,70 +352,6 @@
       background: var(--success-soft);
       color: var(--success);
       font-weight: 600;
-    }
-    .adhoc-form-box {
-      background: var(--amber-soft);
-      border: 1.5px solid var(--amber-border);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 14px;
-    }
-    .adhoc-grid-2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 10px;
-    }
-    .adhoc-card {
-      border: 1.5px solid var(--amber-border);
-      background: #fffdf7;
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
-    .adhoc-badge {
-      display: inline-block;
-      background: #fef3c7;
-      color: var(--amber);
-      border: 1px solid var(--amber-border);
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .passenger-chip {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 7px 10px;
-      margin-bottom: 6px;
-      font-size: 13px;
-    }
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-    }
-    table.report-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-      background: #fff;
-    }
-    table.report-table th,
-    table.report-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #eef2f6;
-      text-align: left;
-      white-space: nowrap;
-    }
-    table.report-table th {
-      background: #f8fafc;
-      font-weight: 700;
-      color: #334155;
     }
     .error-text {
       color: #b91c1c;
@@ -498,7 +399,7 @@
   <div id="appShell" style="display:none;">
     <header class="topbar">
       <div>
-        <h1>调度员端 · 常规路线与临时路线管理</h1>
+        <h1>调度员端 · 线路、车辆与司机指派管理</h1>
         <div class="topbar-meta" id="syncStatusText">数据已就绪</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -561,25 +462,42 @@
         </section>
       </div>
 
-      <div class="right-stack">
-        <section class="panel" style="padding:12px 16px;">
-          <div class="toolbar-row" style="margin-bottom:0;">
+      <div>
+        <section class="panel">
+          <h2 class="panel-title">
+            <span>线路排班 · 日期发车时间、临时指定车辆与指定司机</span>
+            <span style="font-size:12px;color:var(--muted);font-weight:400;">司机确认状态后此处自动同步更新</span>
+          </h2>
+
+          <div class="toolbar-row">
             <div class="toolbar-group">
-              <strong style="font-size:13.5px;">资源配置：</strong>
+              <label>
+                统一日期：
+                <input type="date" class="input input-sm" id="batchDateInput" />
+              </label>
+              <label>
+                统一发车时间：
+                <input type="time" class="input input-sm" id="batchTimeInput" value="08:00" />
+              </label>
+              <button class="btn btn-primary" type="button" style="padding:6px 10px;font-size:12.5px;" onclick="applyBatchSchedule()">
+                应用到所有线路
+              </button>
+            </div>
+            <div class="toolbar-group">
               <button class="btn" type="button" style="padding:6px 10px;font-size:12.5px;" onclick="toggleVehicleManager()">
                 车辆管理
               </button>
               <button class="btn" type="button" style="padding:6px 10px;font-size:12.5px;" onclick="toggleDriverManager()">
                 司机管理
               </button>
-            </div>
-            <div style="font-size:12px;color:var(--muted);">
-              上午接结束 → 自动推下午送；下午送结束 → 自动推明日上午接
+              <button class="btn btn-primary" type="button" style="padding:6px 10px;font-size:12.5px;" onclick="addRoute()">
+                + 新增线路
+              </button>
             </div>
           </div>
 
-          <div class="manager-box" id="vehicleManagerBox" style="display:none;margin-top:10px;margin-bottom:0;">
-            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px;">车辆名单管理</div>
+          <div class="manager-box" id="vehicleManagerBox" style="display:none;">
+            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px;">车辆名单管理（支持“几号车”或车型如“特斯拉”，增减与改名）</div>
             <div class="manager-add-row">
               <input
                 type="text"
@@ -596,22 +514,16 @@
             <div class="manager-list-grid" id="vehicleManageList"></div>
           </div>
 
-          <div class="manager-box" id="driverManagerBox" style="display:none;margin-top:10px;margin-bottom:0;">
-            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px;">司机名单管理（绑定登录邮箱用于严格隔离任务）</div>
+          <div class="manager-box" id="driverManagerBox" style="display:none;">
+            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px;">司机名单管理（增减与改名）</div>
             <div class="manager-add-row">
               <input
                 type="text"
                 class="input input-sm"
                 id="newDriverNameInput"
-                placeholder="司机姓名，如：周师傅"
-                style="flex:1;min-width:150px;"
-              />
-              <input
-                type="email"
-                class="input input-sm"
-                id="newDriverEmailInput"
-                placeholder="司机登录邮箱，如：zhou@example.com"
-                style="flex:1.2;min-width:200px;"
+                placeholder="输入新司机姓名，如：周师傅"
+                style="flex:1;min-width:180px;"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addDriver();}"
               />
               <button class="btn btn-primary" type="button" style="padding:6px 12px;font-size:12.5px;" onclick="addDriver()">
                 + 添加司机
@@ -619,76 +531,770 @@
             </div>
             <div class="manager-list-grid" id="driverManageList"></div>
           </div>
-        </section>
 
-        <section class="panel" id="regularRoutesSection">
-          <h2 class="panel-title">
-            <span>常规路线（共 7 条 · 默认折叠）</span>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <button class="btn" type="button" style="padding:5px 10px;font-size:12px;" onclick="setAllRegularCollapsed(true)">
-                全部折叠
-              </button>
-              <button class="btn" type="button" style="padding:5px 10px;font-size:12px;" onclick="setAllRegularCollapsed(false)">
-                全部展开
-              </button>
-              <button class="btn btn-primary" type="button" style="padding:5px 10px;font-size:12px;" onclick="resetAllRegularToTodayMorning()">
-                重置为今日上午接
-              </button>
+          <div class="routes-grid" id="routesGrid"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script>
+    const DEFAULT_VEHICLES = ['1号车', '2号车', '3号车', '4号车', '5号车', '6号车', '7号车', '8号车', '9号车'];
+    const NO_PICKUP_VALUE = '__NO_PICKUP__';
+    const DB_ROOT_PATH = 'fleetDispatchState';
+
+    let auth = null;
+    let db = null;
+    let dbRef = null;
+    let state = null;
+    let draggedMemberId = null;
+    let isSubscribed = false;
+    let vehicleManagerOpen = false;
+    let driverManagerOpen = false;
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str);
+    }
+
+    function getDefaultState() {
+      const base = (window.FleetSync && window.FleetSync.DEFAULT_STATE)
+        ? JSON.parse(JSON.stringify(window.FleetSync.DEFAULT_STATE))
+        : {
+            vehicles: DEFAULT_VEHICLES.slice(),
+            drivers: [
+              { id: 'd1', name: '陈师傅' },
+              { id: 'd2', name: '李师傅' },
+              { id: 'd3', name: '王师傅' }
+            ],
+            members: [],
+            routes: [
+              { id: 'r1', lineName: '1号线', vehicleNo: '1号车', assignedDriverId: 'd1', dispatchDate: '', departureTime: '08:00', stops: [] },
+              { id: 'r2', lineName: '2号线', vehicleNo: '2号车', assignedDriverId: 'd2', dispatchDate: '', departureTime: '08:00', stops: [] },
+              { id: 'r3', lineName: '3号线', vehicleNo: '3号车', assignedDriverId: 'd3', dispatchDate: '', departureTime: '08:00', stops: [] }
+            ]
+          };
+      base.updatedAt = base.updatedAt || new Date().toISOString();
+      return base;
+    }
+
+    function ensureFirebaseReady() {
+      if (auth && db) return true;
+
+      const fs = window.FleetSync || {};
+      const rawCfg =
+        window.FIREBASE_CONFIG ||
+        fs.FIREBASE_CONFIG ||
+        fs.firebaseConfig ||
+        fs.config ||
+        (firebase.apps.length && firebase.app().options) ||
+        {};
+
+      const cfg = {
+        apiKey: rawCfg.apiKey,
+        authDomain: rawCfg.authDomain || 'fleet-dispatch-tx.firebaseapp.com',
+        databaseURL:
+          rawCfg.databaseURL ||
+          'https://fleet-dispatch-tx-default-rtdb.firebaseio.com',
+        projectId: rawCfg.projectId || 'fleet-dispatch-tx',
+        storageBucket: rawCfg.storageBucket,
+        messagingSenderId: rawCfg.messagingSenderId,
+        appId: rawCfg.appId
+      };
+
+      if (!cfg.apiKey || cfg.apiKey === 'YOUR_FIREBASE_API_KEY') {
+        document.getElementById('authErrorText').textContent =
+          '未检测到有效的 Firebase apiKey，请先在 firebase-config.js 中填入真实配置。';
+        return false;
+      }
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(cfg);
+      }
+      auth = firebase.auth();
+      db = firebase.database();
+      dbRef = db.ref(DB_ROOT_PATH);
+      return true;
+    }
+
+    function getTodayDateStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function normalizeState(raw) {
+      const fallback = getDefaultState();
+      const next = Object.assign({}, fallback, raw || {});
+      next.vehicles = Array.isArray(next.vehicles)
+        ? next.vehicles.map(v => String(v || '').trim()).filter(Boolean)
+        : DEFAULT_VEHICLES.slice();
+      next.drivers = Array.isArray(next.drivers) ? next.drivers : [];
+      next.members = Array.isArray(next.members) ? next.members : [];
+      next.routes = Array.isArray(next.routes) ? next.routes : [];
+
+      const defaultDate = getTodayDateStr();
+      next.routes.forEach((r, idx) => {
+        if (!r.id) r.id = `r-${idx + 1}`;
+        if (!r.lineName) r.lineName = `${idx + 1}号线`;
+        if (!r.dispatchDate) r.dispatchDate = defaultDate;
+        if (!r.departureTime) r.departureTime = '08:00';
+        if (!Array.isArray(r.stops)) r.stops = [];
+      });
+
+      const dateEl = document.getElementById('batchDateInput');
+      const timeEl = document.getElementById('batchTimeInput');
+      if (dateEl && !dateEl.value) {
+        dateEl.value = (next.routes[0] && next.routes[0].dispatchDate) || defaultDate;
+      }
+      if (timeEl && !timeEl.value) {
+        timeEl.value = (next.routes[0] && next.routes[0].departureTime) || '08:00';
+      }
+      return next;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(window.__dToast);
+      window.__dToast = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    function formatShortTime(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    async function loadCloudState() {
+      const snap = await dbRef.once('value');
+      const val = snap.val();
+      if (!val) {
+        const initial = normalizeState(getDefaultState());
+        await dbRef.set(initial);
+        return initial;
+      }
+      return normalizeState(val);
+    }
+
+    async function persist(msg) {
+      state = normalizeState(state);
+      state.updatedAt = new Date().toISOString();
+      await dbRef.set(state);
+      renderAll();
+      if (msg) showToast(msg);
+    }
+
+    async function refreshFromStore() {
+      state = await loadCloudState();
+      renderAll();
+      showToast('已同步最新状态');
+    }
+
+    async function logoutDispatcher() {
+      if (auth) await auth.signOut();
+    }
+
+    function toggleVehicleManager() {
+      vehicleManagerOpen = !vehicleManagerOpen;
+      document.getElementById('vehicleManagerBox').style.display = vehicleManagerOpen ? 'block' : 'none';
+      if (vehicleManagerOpen) renderVehicleManager();
+    }
+
+    function toggleDriverManager() {
+      driverManagerOpen = !driverManagerOpen;
+      document.getElementById('driverManagerBox').style.display = driverManagerOpen ? 'block' : 'none';
+      if (driverManagerOpen) renderDriverManager();
+    }
+
+    async function addVehicle() {
+      const input = document.getElementById('newVehicleNameInput');
+      const name = (input.value || '').trim();
+      if (!name) {
+        showToast('请先输入车号或车型（如 1号车 或 特斯拉）');
+        return;
+      }
+      if ((state.vehicles || []).includes(name)) {
+        showToast(`车辆「${name}」已存在`);
+        return;
+      }
+      state.vehicles.push(name);
+      input.value = '';
+      await persist(`已添加车辆：${name}`);
+    }
+
+    async function renameVehicle(index, nextName) {
+      const trimmed = String(nextName || '').trim();
+      const oldName = state.vehicles[index];
+      if (oldName === undefined || !trimmed || oldName === trimmed) return;
+      if ((state.vehicles || []).some((v, i) => i !== index && v === trimmed)) {
+        showToast(`车辆「${trimmed}」已存在`);
+        renderVehicleManager();
+        return;
+      }
+      state.vehicles[index] = trimmed;
+      state.routes.forEach(r => {
+        if (r.vehicleNo === oldName) {
+          r.vehicleNo = trimmed;
+        }
+      });
+      await persist(`已将车辆更新为：${trimmed}`);
+    }
+
+    async function deleteVehicle(index) {
+      const targetName = state.vehicles[index];
+      if (!targetName) return;
+      if (!confirm(`确定删除车辆「${targetName}」吗？已指派该车的线路将变为“未指定车辆”。`)) return;
+      state.vehicles.splice(index, 1);
+      state.routes.forEach(r => {
+        if (r.vehicleNo === targetName) {
+          r.vehicleNo = '';
+        }
+      });
+      await persist(`已删除车辆：${targetName}`);
+    }
+
+    function getNextRouteName() {
+      const used = new Set((state.routes || []).map(r => String(r.lineName || '').trim()));
+      let n = 1;
+      while (used.has(`${n}号线`)) {
+        n += 1;
+      }
+      return `${n}号线`;
+    }
+
+    async function addRoute() {
+      const lineName = getNextRouteName();
+      const defaultDate = document.getElementById('batchDateInput').value || getTodayDateStr();
+      const defaultTime = document.getElementById('batchTimeInput').value || '08:00';
+      const vehicles = state.vehicles || [];
+      const nextIndex = (state.routes || []).length;
+      const defaultVehicle = vehicles.length ? vehicles[nextIndex % vehicles.length] : '';
+      const newRoute = {
+        id: 'rt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        lineName,
+        vehicleNo: defaultVehicle,
+        assignedDriverId: '',
+        dispatchDate: defaultDate,
+        departureTime: defaultTime,
+        stops: []
+      };
+      state.routes.push(newRoute);
+      await persist(`已新增 ${lineName}`);
+    }
+
+    async function editRouteName(routeId) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      const input = prompt('请输入线路名称（例如：1号线、西南线、糖城线）：', route.lineName || '');
+      if (input === null) return;
+      const nextName = input.trim();
+      if (!nextName) {
+        showToast('线路名称不能为空');
+        return;
+      }
+      route.lineName = nextName;
+      await persist(`已更新线路名称为：${nextName}`);
+    }
+
+    async function deleteRoute(routeId) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      const stopCount = (route.stops || []).length;
+      const tip = stopCount > 0
+        ? `确定删除「${route.lineName}」吗？该线路当前有 ${stopCount} 个站点将被一并移除。`
+        : `确定删除「${route.lineName}」吗？`;
+      if (!confirm(tip)) return;
+      state.routes = state.routes.filter(r => r.id !== routeId);
+      await persist(`已删除 ${route.lineName}`);
+    }
+
+    async function addDriver() {
+      const input = document.getElementById('newDriverNameInput');
+      const name = (input.value || '').trim();
+      if (!name) {
+        showToast('请先输入司机姓名');
+        return;
+      }
+      const newDriver = {
+        id: 'drv-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        name
+      };
+      state.drivers.push(newDriver);
+      input.value = '';
+      await persist(`已添加司机：${name}`);
+    }
+
+    async function renameDriver(driverId, nextName) {
+      const trimmed = String(nextName || '').trim();
+      const driver = state.drivers.find(d => d.id === driverId);
+      if (!driver || !trimmed || driver.name === trimmed) return;
+      driver.name = trimmed;
+      await persist(`已更新司机姓名为：${trimmed}`);
+    }
+
+    async function deleteDriver(driverId) {
+      const driver = state.drivers.find(d => d.id === driverId);
+      if (!driver) return;
+      if (!confirm(`确定删除司机「${driver.name}」吗？已指派给该司机的线路将变为“未指定司机”。`)) return;
+      state.drivers = state.drivers.filter(d => d.id !== driverId);
+      state.routes.forEach(r => {
+        if (r.assignedDriverId === driverId) {
+          r.assignedDriverId = '';
+        }
+      });
+      await persist(`已删除司机：${driver.name}`);
+    }
+
+    async function updateRouteSchedule(routeId, field, value) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      route[field] = value;
+      await persist(`${route.lineName} 已更新为 ${route.dispatchDate || ''} ${route.departureTime || ''}`.trim());
+    }
+
+    async function applyBatchSchedule() {
+      const dateVal = document.getElementById('batchDateInput').value;
+      const timeVal = document.getElementById('batchTimeInput').value;
+      if (!dateVal && !timeVal) {
+        showToast('请先选择日期或发车时间');
+        return;
+      }
+      state.routes.forEach(r => {
+        if (dateVal) r.dispatchDate = dateVal;
+        if (timeVal) r.departureTime = timeVal;
+      });
+      await persist(`已将所有线路设为 ${dateVal || ''} ${timeVal || ''}`.trim());
+    }
+
+    function resetMemberForm() {
+      document.getElementById('editingMemberId').value = '';
+      document.getElementById('memberForm').reset();
+    }
+
+    function editMember(memberId) {
+      const m = state.members.find(item => item.id === memberId);
+      if (!m) return;
+      document.getElementById('editingMemberId').value = m.id;
+      document.getElementById('mName').value = m.name || '';
+      document.getElementById('mPhone').value = m.phone || '';
+      document.getElementById('mAddress').value = m.address || '';
+      document.getElementById('mSpecial').value = m.specialNeeds || '';
+      document.getElementById('mNotes').value = m.notes || '';
+      document.getElementById('mName').focus();
+    }
+
+    async function saveMember(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editingMemberId').value;
+      const existing = editId ? state.members.find(m => m.id === editId) : null;
+      const payload = {
+        id: editId || ('m-' + Date.now()),
+        name: document.getElementById('mName').value.trim(),
+        phone: document.getElementById('mPhone').value.trim(),
+        address: document.getElementById('mAddress').value.trim(),
+        specialNeeds: document.getElementById('mSpecial').value.trim(),
+        notes: document.getElementById('mNotes').value.trim(),
+        noPickup: existing ? Boolean(existing.noPickup) : false
+      };
+      if (editId) {
+        const idx = state.members.findIndex(m => m.id === editId);
+        if (idx !== -1) state.members[idx] = payload;
+      } else {
+        state.members.unshift(payload);
+      }
+      resetMemberForm();
+      await persist(editId ? '已更新卡片信息' : '已新增卡片信息');
+    }
+
+    async function deleteMember(memberId) {
+      state.members = state.members.filter(m => m.id !== memberId);
+      state.routes.forEach(r => {
+        r.stops = (r.stops || []).filter(s => s.memberId !== memberId);
+      });
+      await persist('已删除卡片');
+    }
+
+    async function setMemberNoPickup(memberId, enabled) {
+      const member = state.members.find(m => m.id === memberId);
+      if (!member) return;
+      member.noPickup = enabled;
+      if (enabled) {
+        state.routes.forEach(r => {
+          r.stops = (r.stops || []).filter(s => s.memberId !== memberId);
+        });
+      }
+      await persist(enabled ? `已标记 ${member.name} 为无需接送（自驾或亲友接送）` : `已取消 ${member.name} 的无需接送标记`);
+    }
+
+    async function handleMemberRouteSelect(memberId, selectedValue) {
+      if (!selectedValue) return;
+      if (selectedValue === NO_PICKUP_VALUE) {
+        await setMemberNoPickup(memberId, true);
+        return;
+      }
+      await addMemberToRoute(memberId, selectedValue);
+    }
+
+    async function addMemberToRoute(memberId, routeId) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      const member = state.members.find(m => m.id === memberId);
+      if (member && member.noPickup) {
+        member.noPickup = false;
+      }
+      route.stops = route.stops || [];
+      route.stops.push({
+        memberId,
+        pickedUp: false,
+        mealDelivered: false,
+        updatedAt: ''
+      });
+      await persist(`已加入 ${route.lineName}`);
+    }
+
+    async function moveStop(routeId, index, delta) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route || !route.stops) return;
+      const target = index + delta;
+      if (target < 0 || target >= route.stops.length) return;
+      const temp = route.stops[index];
+      route.stops[index] = route.stops[target];
+      route.stops[target] = temp;
+      await persist('已调整接送顺序');
+    }
+
+    async function removeStop(routeId, index) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route || !route.stops) return;
+      route.stops.splice(index, 1);
+      await persist('已从线路移除该站点');
+    }
+
+    async function updateRouteVehicle(routeId, vehicleNo) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      route.vehicleNo = vehicleNo;
+      await persist(`${route.lineName} 临时指定为 ${vehicleNo || '未指定车辆'}`);
+    }
+
+    async function updateRouteDriver(routeId, driverId) {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      route.assignedDriverId = driverId;
+      const drv = state.drivers.find(d => d.id === driverId);
+      await persist(`${route.lineName} 已指定司机：${drv ? drv.name : '未指定司机'}`);
+    }
+
+    function getAssignedRouteNames(memberId) {
+      const names = [];
+      (state.routes || []).forEach(r => {
+        if ((r.stops || []).some(s => s.memberId === memberId)) {
+          names.push(r.lineName);
+        }
+      });
+      return names;
+    }
+
+    function clearMemberSearch() {
+      const input = document.getElementById('memberSearchInput');
+      if (input) input.value = '';
+      renderMemberPool();
+    }
+
+    function renderVehicleManager() {
+      const container = document.getElementById('vehicleManageList');
+      if (!container) return;
+      const vehicles = state.vehicles || [];
+      if (!vehicles.length) {
+        container.innerHTML = `<div style="font-size:12.5px;color:var(--muted);">暂无车辆，请在上方添加（如“1号车”或“特斯拉”）。</div>`;
+        return;
+      }
+      container.innerHTML = vehicles.map((v, idx) => `
+        <div class="manager-item">
+          <input
+            type="text"
+            class="input input-sm"
+            style="flex:1;min-width:90px;"
+            value="${escapeAttr(v)}"
+            onchange="renameVehicle(${idx}, this.value)"
+          />
+          <button type="button" class="btn btn-danger" style="padding:4px 8px;font-size:11.5px;" onclick="deleteVehicle(${idx})">删除</button>
+        </div>
+      `).join('');
+    }
+
+    function renderDriverManager() {
+      const container = document.getElementById('driverManageList');
+      if (!container) return;
+      const drivers = state.drivers || [];
+      if (!drivers.length) {
+        container.innerHTML = `<div style="font-size:12.5px;color:var(--muted);">暂无司机，请在上方添加。</div>`;
+        return;
+      }
+      container.innerHTML = drivers.map(d => `
+        <div class="manager-item">
+          <input
+            type="text"
+            class="input input-sm"
+            style="flex:1;min-width:90px;"
+            value="${escapeAttr(d.name || '')}"
+            onchange="renameDriver('${escapeAttr(d.id)}', this.value)"
+          />
+          <button type="button" class="btn btn-danger" style="padding:4px 8px;font-size:11.5px;" onclick="deleteDriver('${escapeAttr(d.id)}')">删除</button>
+        </div>
+      `).join('');
+    }
+
+    function renderMemberPool() {
+      const container = document.getElementById('memberPoolList');
+      const searchInput = document.getElementById('memberSearchInput');
+      const countEl = document.getElementById('poolCountText');
+      const keyword = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+      const allMembers = state.members || [];
+      const filtered = keyword
+        ? allMembers.filter(m => {
+            const hay = [m.name, m.phone, m.address, m.specialNeeds, m.notes]
+              .map(v => String(v || '').toLowerCase())
+              .join(' ');
+            return hay.includes(keyword);
+          })
+        : allMembers;
+
+      if (countEl) {
+        countEl.textContent = keyword
+          ? `筛选 ${filtered.length} / ${allMembers.length} 张`
+          : `共 ${allMembers.length} 张 · 可拖拽`;
+      }
+
+      const routeOptions = (state.routes || [])
+        .map(r => `<option value="${escapeAttr(r.id)}">${escapeHtml(r.lineName)}</option>`)
+        .join('');
+
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div style="padding:18px 10px;text-align:center;color:var(--muted);font-size:12.5px;border:1px dashed #d1d5db;border-radius:10px;">
+            ${keyword ? '没有匹配的人员卡片' : '暂无人员卡片，请在上方新建'}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(m => {
+        const assignedLines = getAssignedRouteNames(m.id);
+        let routeBadgeHtml = '';
+        if (assignedLines.length > 0) {
+          routeBadgeHtml = `<span class="route-status-badge assigned">已排：${escapeHtml(assignedLines.join('、'))}</span>`;
+        } else if (m.noPickup) {
+          routeBadgeHtml = `<span class="route-status-badge self-transport">无需接送（自驾或亲友接送）</span>`;
+        } else {
+          routeBadgeHtml = `<span class="route-status-badge unassigned">未排线路</span>`;
+        }
+
+        const safeId = escapeAttr(m.id);
+        return `
+          <div class="member-card" draggable="true" ondragstart="draggedMemberId='${safeId}'">
+            <div class="member-head">
+              <span>${escapeHtml(m.name)}</span>
+              <span style="font-size:12px;color:var(--muted);font-weight:400;">${escapeHtml(m.phone || '')}</span>
             </div>
-          </h2>
-          <div class="regular-list" id="regularRoutesList"></div>
-        </section>
+            <div>
+              ${routeBadgeHtml}
+              ${m.specialNeeds ? `<span class="tag">特殊需要：${escapeHtml(m.specialNeeds)}</span>` : ''}
+            </div>
+            <div class="member-detail">${escapeHtml(m.address || '')}</div>
+            ${m.notes ? `<div class="member-detail" style="color:#6b7280;">备注：${escapeHtml(m.notes)}</div>` : ''}
+            <div class="member-actions">
+              <select class="select" style="width:auto;padding:5px 8px;font-size:12px;" onchange="if(this.value){handleMemberRouteSelect('${safeId}', this.value); this.value='';}">
+                <option value="">+ 加入线路...</option>
+                ${routeOptions}
+                <option value="${NO_PICKUP_VALUE}">无需接送（自驾或亲友接送）</option>
+              </select>
+              ${m.noPickup ? `<button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="setMemberNoPickup('${safeId}', false)">恢复待排</button>` : ''}
+              <button class="btn" type="button" style="padding:5px 8px;font-size:12px;" onclick="editMember('${safeId}')">编辑</button>
+              <button class="btn btn-danger" type="button" style="padding:5px 8px;font-size:12px;" onclick="deleteMember('${safeId}')">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
-        <section class="panel" id="adhocRoutesSection">
-          <h2 class="panel-title">
-            <span>临时路线（动态新增 · 实时派单）</span>
-            <button class="btn btn-amber" type="button" style="padding:6px 12px;font-size:12.5px;" onclick="toggleAdhocForm()">
-              + 新增临时路线
-            </button>
-          </h2>
+    function renderRoutes() {
+      const container = document.getElementById('routesGrid');
+      const memberMap = new Map((state.members || []).map(m => [m.id, m]));
 
-          <div class="adhoc-form-box" id="adhocFormBox" style="display:none;">
-            <form id="adhocRouteForm" onsubmit="saveAdhocRoute(event)">
-              <input type="hidden" id="editingAdhocId" />
-              <div class="adhoc-grid-2">
-                <div class="form-group">
-                  <label for="adhocName">1. 临时线路名称 *</label>
-                  <input class="input" id="adhocName" required placeholder="例如：丰健伟诊所专车 / 午间临时接送" />
+      if (!state.routes || state.routes.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);border:1px dashed #cbd5e1;border-radius:12px;">
+            当前暂无线路，点击上方「+ 新增线路」开始排班。
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.routes.map(route => {
+        const safeRouteId = escapeAttr(route.id);
+        const vehicleList = Array.from(new Set(
+          (state.vehicles || []).concat(route.vehicleNo ? [route.vehicleNo] : [])
+        ));
+        const vehicleOptions = [`<option value="">未指定车辆</option>`]
+          .concat(vehicleList.map(v => `<option value="${escapeAttr(v)}" ${route.vehicleNo === v ? 'selected' : ''}>${escapeHtml(v)}</option>`))
+          .join('');
+
+        const driverOptions = [`<option value="">未指定司机</option>`]
+          .concat((state.drivers || []).map(d => `<option value="${escapeAttr(d.id)}" ${route.assignedDriverId === d.id ? 'selected' : ''}>${escapeHtml(d.name || '')}</option>`))
+          .join('');
+
+        const stopsHtml = (!route.stops || route.stops.length === 0)
+          ? `<div style="padding:18px 8px;text-align:center;color:var(--muted);font-size:12.5px;border:1px dashed #d1d5db;border-radius:8px;">
+               拖入卡片或从左侧「+ 加入线路」添加站点
+             </div>`
+          : route.stops.map((stop, idx) => {
+              const m = memberMap.get(stop.memberId);
+              if (!m) return '';
+              const timeStr = stop.updatedAt ? ` · ${formatShortTime(stop.updatedAt)}` : '';
+              return `
+                <div class="stop-item">
+                  <div class="stop-item-top">
+                    <span>#${idx + 1} ${escapeHtml(m.name)}</span>
+                    <div style="display:flex;gap:4px;">
+                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${safeRouteId}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
+                      <button class="btn" type="button" style="padding:2px 6px;font-size:11px;" onclick="moveStop('${safeRouteId}', ${idx}, 1)" ${idx === route.stops.length - 1 ? 'disabled' : ''}>↓</button>
+                      <button class="btn btn-danger" type="button" style="padding:2px 6px;font-size:11px;" onclick="removeStop('${safeRouteId}', ${idx})">移出</button>
+                    </div>
+                  </div>
+                  <div style="font-size:12px;color:#4b5563;margin-top:3px;">${escapeHtml(m.address || '')}</div>
+                  ${m.specialNeeds ? `<span class="tag">${escapeHtml(m.specialNeeds)}</span>` : ''}
+                  <div class="status-row">
+                    <span class="status-pill ${stop.pickedUp ? 'ok' : ''}">${stop.pickedUp ? '✓ 已接送' : '待接送'}</span>
+                    <span class="status-pill ${stop.mealDelivered ? 'ok' : ''}">${stop.mealDelivered ? '✓ 餐食已送达' : '餐食待送达'}</span>
+                    ${timeStr ? `<span style="font-size:11px;color:var(--muted);">${escapeHtml(timeStr)}</span>` : ''}
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="adhocLocationSearch">2. 目的地选择（约50个常用地点）*</label>
-                  <input
-                    class="input"
-                    id="adhocLocationSearch"
-                    placeholder="输入关键词筛选常用地点，如：丰健伟、诊所、医院、超市..."
-                    oninput="filterLocationSelect()"
-                    style="margin-bottom:6px;"
-                  />
-                  <select class="select" id="adhocLocationSelect" onchange="onCommonLocationChange()">
-                    <option value="">-- 请选择常用地点（自动带出详细地址） --</option>
-                  </select>
-                </div>
-              </div>
+              `;
+            }).join('');
 
-              <div class="form-group">
-                <label for="adhocAddress">目的地详细地址（选中常用地点后自动带出，支持必要时微调）*</label>
-                <input class="input" id="adhocAddress" required placeholder="选择常用地点后自动填入地址，也可手动补充楼层/门牌" />
+        return `
+          <div class="route-card"
+            ondragover="event.preventDefault(); this.classList.add('drag-over');"
+            ondragleave="this.classList.remove('drag-over');"
+            ondrop="event.preventDefault(); this.classList.remove('drag-over'); if(draggedMemberId){ addMemberToRoute(draggedMemberId, '${safeRouteId}'); draggedMemberId = null; }">
+            <div class="route-top">
+              <span class="route-name">${escapeHtml(route.lineName)}</span>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span style="font-size:12px;color:var(--muted);">共 ${(route.stops || []).length} 站</span>
+                <button class="btn" type="button" style="padding:3px 8px;font-size:11.5px;" onclick="editRouteName('${safeRouteId}')">改名</button>
+                <button class="btn btn-danger" type="button" style="padding:3px 8px;font-size:11.5px;" onclick="deleteRoute('${safeRouteId}')">删除</button>
               </div>
-
-              <div class="form-group">
-                <label>3. 需接送长者选择（仅提取长者的“姓名”与“电话”，不修改原有长者档案）</label>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                  <select class="select" id="adhocMemberPicker" style="flex:1;min-width:220px;">
-                    <option value="">-- 选择长者卡片加入接送顺序 --</option>
-                  </select>
-                  <button class="btn btn-primary" type="button" onclick="addSelectedMemberToAdhoc()">
-                    + 加入接送顺序
-                  </button>
-                </div>
-                <div id="adhocPassengerList"></div>
+            </div>
+            <div class="schedule-controls">
+              <div>
+                <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">日期</label>
+                <input type="date" class="input" style="padding:6px 8px;font-size:12.5px;" value="${escapeAttr(route.dispatchDate || '')}" onchange="updateRouteSchedule('${safeRouteId}', 'dispatchDate', this.value)" />
               </div>
+              <div>
+                <label style="display:block;font-size:11.5px;color:#334155;font-weight:600;margin-bottom:3px;">发车时间</label>
+                <input type="time" class="input" style="padding:6px 8px;font-size:12.5px;" value="${escapeAttr(route.departureTime || '')}" onchange="updateRouteSchedule('${safeRouteId}', 'departureTime', this.value)" />
+              </div>
+            </div>
+            <div class="assign-controls">
+              <div>
+                <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定车辆</label>
+                <select class="select" onchange="updateRouteVehicle('${safeRouteId}', this.value)">
+                  ${vehicleOptions}
+                </select>
+              </div>
+              <div>
+                <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;">临时指定司机</label>
+                <select class="select" onchange="updateRouteDriver('${safeRouteId}', this.value)">
+                  ${driverOptions}
+                </select>
+              </div>
+            </div>
+            <div>${stopsHtml}</div>
+          </div>
+        `;
+      }).join('');
+    }
 
-              <div class="adhoc-grid-2">
-                <div class="form-group">
-                  <label for="adhocVehicle">4. 分配车辆 *</label>
-                  <select class="select" id="adh
+    function renderAll() {
+      if (!state) return;
+      document.getElementById('syncStatusText').textContent =
+        `最近更新：${new Date(state.updatedAt || Date.now()).toLocaleString('zh-CN')} · Firebase 云端已认证同步`;
+      if (vehicleManagerOpen) renderVehicleManager();
+      if (driverManagerOpen) renderDriverManager();
+      renderMemberPool();
+      renderRoutes();
+    }
+
+    document.getElementById('dispatcherLoginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const errEl = document.getElementById('authErrorText');
+      const btn = document.getElementById('loginSubmitBtn');
+      errEl.textContent = '';
+      if (!ensureFirebaseReady()) return;
+
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        errEl.textContent = '登录失败：请检查邮箱或密码是否正确（' + (err && err.code ? err.code : '认证错误') + '）。';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '登录调度员端';
+      }
+    });
+
+    (function initAuthWatcher() {
+      if (!ensureFirebaseReady()) return;
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          document.getElementById('appShell').style.display = 'none';
+          document.getElementById('authScreen').style.display = 'flex';
+          document.getElementById('currentUserBadge').textContent = '';
+          return;
+        }
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('appShell').style.display = 'block';
+        document.getElementById('currentUserBadge').textContent = '已登录：' + (user.email || '');
+
+        try {
+          state = await loadCloudState();
+          renderAll();
+          if (!isSubscribed) {
+            isSubscribed = true;
+            dbRef.on('value', (snap) => {
+              const val = snap.val();
+              if (!val) return;
+              state = normalizeState(val);
+              renderAll();
+            });
+          }
+        } catch (err) {
+          showToast('读取云端数据失败，请检查数据库规则');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
